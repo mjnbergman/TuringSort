@@ -1,0 +1,13 @@
+interface ITuringSort{
+	
+	in void init_Machine();
+	
+	behaviour{
+		
+	}
+}
+
+component TuringSort{
+	provides ITuringSort robotInterface;
+	
+}
