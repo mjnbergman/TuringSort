@@ -1,6 +1,5 @@
-import Motor.dzn;
-import Light.dzn;
-import Display.dzn;
+import Interfaces.dzn;
+import Components.dzn;
 
 component System {
 	provides iControl port;

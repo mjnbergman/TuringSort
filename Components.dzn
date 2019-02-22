@@ -1,45 +1,11 @@
-interface iControl {
-	enum State {On, Off};
-	in void turnOn();
-	in void turnOff();
-	
-	behaviour {
-		State state = State.Off;
-		
-		[state.Off] {
-			on turnOn: state = State.On; 
-			on turnOff: {}
-		}
-		[state.On] {
-			on turnOn: illegal;
-			on turnOff: state = State.Off;
-		}
-	}
+import Interfaces.dzn;
+
+component Motor {
+	provides iMotor port;
 }
 
-interface iSensor {
-	in void turnOn();
-	in void turnOff();
-	in void calibrate();
-	out void measures();
-	
-	behaviour {
-		enum State {On, Off};
-		State state = State.Off;
-		
-		[state.Off] {
-			on turnOn: state = State.On; 
-			on turnOff: {}
-			on calibrate: illegal;
-		}
-		
-		[state.On] {
-			on turnOn: illegal;
-			on turnOff: state = State.Off;
-			on calibrate: {}
-		}	
-	}
-	
+component Display {
+	provides iOutput port;
 }
 
 component Light {

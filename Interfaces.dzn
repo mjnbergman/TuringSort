@@ -1,0 +1,92 @@
+extern String $std::string$;
+extern int $int$;
+
+interface iMotor
+{
+	in void turnOn();
+	in void turnOff();
+	out void error();
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+			on inevitable: {error; state = State.Off;}
+		}
+		
+		[state.Off] {
+			on turnOn: state = State.On;
+			on turnOff: {}
+		}
+	}
+}
+
+interface iOutput {
+	in void turnOn();
+	in void turnOff();
+	in void output(in String output);
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On;
+			on turnOff: {}
+			on output: illegal;
+		}
+		
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+			on output: {}
+		}
+	}
+}
+
+interface iSensor {
+	in void turnOn();
+	in void turnOff();
+	in void calibrate();
+	out void measures();
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On; 
+			on turnOff: {}
+			on calibrate: illegal;
+		}
+		
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+			on calibrate: {}
+		}	
+	}
+	
+}
+
+interface iControl {
+	enum State {On, Off};
+	in void turnOn();
+	in void turnOff();
+	
+	behaviour {
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On; 
+			on turnOff: {}
+		}
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+		}
+	}
+}
