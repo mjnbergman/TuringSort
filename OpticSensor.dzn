@@ -1,0 +1,30 @@
+interface IOpticSensor{
+	
+	in bool read_chip();
+	
+	behaviour{
+		on read_chip:{ reply(true);}
+		on read_chip:{ reply(false);}
+	}
+}
+
+component OpticSensor{
+	provides IOpticSensor iod;
+
+	behaviour{
+		
+		enum testState {IDLE, NOTIDLE};
+		
+		testState st = testState.IDLE;
+		
+		
+		[st.IDLE]
+		on iod.read_chip(): {
+			reply(true);
+		}
+		[st.NOTIDLE]
+		on iod.read_chip():{
+			reply(false);
+		}
+	}
+}
