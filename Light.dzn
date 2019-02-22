@@ -1,0 +1,88 @@
+interface iControl {
+	enum State {On, Off};
+	in void turnOn();
+	in void turnOff();
+	
+	behaviour {
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On; 
+			on turnOff: {}
+		}
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+		}
+	}
+}
+
+interface iSensor {
+	in void turnOn();
+	in void turnOff();
+	in void calibrate();
+	out void measures();
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On; 
+			on turnOff: {}
+			on calibrate: illegal;
+		}
+		
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+			on calibrate: {}
+		}	
+	}
+	
+}
+
+component Light {
+	provides iControl port;
+}
+
+component LightSensor {
+	provides iSensor port;
+}
+
+component ReflectionControl {
+	provides iSensor port;
+	requires iControl light;
+	requires iSensor sensor;
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.Off] {
+			on port.turnOn(): {state = State.On; light.turnOn(); sensor.turnOn();} 
+			on port.turnOff(): {}
+			on port.calibrate(): illegal;
+		}
+		
+		[state.On] {
+			on port.turnOn(): illegal;
+			on port.turnOff(): {state = State.Off; light.turnOff(); sensor.turnOff();}
+			on port.calibrate(): sensor.calibrate();
+		}	
+	}
+}
+
+component ReflectionSensor {
+	provides iSensor port;
+	
+	system {
+		ReflectionControl control;
+		LightSensor sensor;
+		Light light;
+		
+		control.port <=> port; 
+		sensor.port <=> control.sensor;
+		light.port <=> control.light;	
+	}
+}

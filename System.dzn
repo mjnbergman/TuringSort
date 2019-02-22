@@ -1,0 +1,45 @@
+import Motor.dzn;
+import Light.dzn;
+import Display.dzn;
+
+component System {
+	provides iControl port;
+	
+	system {
+		Motor motor;
+		Test test;
+		ReflectionSensor sensor;
+		Display display;
+		
+		port <=> test.port;
+		motor.port <=> test.motor;
+		sensor.port <=> test.reflectionSensor;
+		display.port <=> test.output; 
+	}
+}
+
+component Test {
+	provides iControl port;
+	requires iMotor motor;
+	requires iSensor reflectionSensor;
+	requires iOutput output;
+	
+	behaviour {
+		iControl.State state = iControl.State.Off;
+		
+		[state.On] {
+			on port.turnOn(): illegal;
+			on port.turnOff(): { 
+				state = iControl.State.Off; 
+				motor.turnOff();
+				reflectionSensor.turnOff(); 
+				output.turnOff();
+			}
+		}
+		[state.Off] {
+			on port.turnOn(): { state = iControl.State.On; }
+			on port.turnOff(): {}
+			on motor.error(): illegal;
+		}
+	}
+}
