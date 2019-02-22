@@ -12,9 +12,8 @@
 
 struct Motor : public skel::Motor{
     ~ Motor() {}
-    std::ostream& stream_members(std::ostream& os) const { return os; } // @suppress("Type cannot be resolved")
-    void port_turnOn () = 0;
-    void port_turnOff () = 0;
+    void port_turnOn () {};
+    void port_turnOff () {};
 };
 
 

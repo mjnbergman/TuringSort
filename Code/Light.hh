@@ -12,10 +12,8 @@
 #define CODE_LIGHT_HH_
 
 struct Light: public skel::Light{
-    void port_turnOn () = 0;
-    void port_turnOff () = 0;
-
-    std::ostream& stream_members(std::ostream& os) const { return os; }
+    void port_turnOn () {};
+    void port_turnOff () {};
 };
 
 
