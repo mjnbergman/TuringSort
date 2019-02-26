@@ -5,17 +5,14 @@
  *      Author: 20174570
  */
 
-#include "System.hh"
-
-#include <iostream>
 
 #ifndef CODE_LIGHTSENSOR_HH_
 #define CODE_LIGHTSENSOR_HH_
 
 struct LightSensor : public skel::LightSensor{
     ~ LightSensor() {}
-    private:
-    void port_turnOn () {};
+    LightSensor(const dzn::locator& dzn_locator) : skel::LightSensor(dzn_locator){};
+    void port_turnOn () {std::cout << "Test Turn On";};
     void port_turnOff () {};
     void port_calibrate () {};
 };

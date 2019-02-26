@@ -16,7 +16,6 @@
 #include <dzn/runtime.hh>
 
 
-
 ReflectionControl::ReflectionControl(const dzn::locator& dzn_locator)
 : dzn_meta{"","ReflectionControl",0,0,{& light.meta,& sensor.meta},{},{[this]{port.check_bindings();},[this]{light.check_bindings();},[this]{sensor.check_bindings();}}}
 , dzn_rt(dzn_locator.get<dzn::runtime>())

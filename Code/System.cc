@@ -103,13 +103,13 @@ void Test::dump_tree(std::ostream& os) const
 
 //SYSTEM
 
-System::System(const dzn::locator& dzn_locator)
+System::System(const dzn::locator& dzn_locator, int motorPin)
 : dzn_meta{"","System",0,0,{},{& motor.dzn_meta,& test.dzn_meta,& sensor.dzn_meta,& display.dzn_meta},{[this]{port.check_bindings();}}}
 , dzn_rt(dzn_locator.get<dzn::runtime>())
 , dzn_locator(dzn_locator)
 
 
-, motor(dzn_locator)
+, motor(dzn_locator, motorPin)
 , test(dzn_locator)
 , sensor(dzn_locator)
 , display(dzn_locator)

@@ -12,6 +12,9 @@
 
 struct Display : public skel::Display{
     ~ Display() {}
+    Display(const dzn::locator& loc) : skel::Display(loc){
+
+    }
     void port_turnOn () {};
     void port_turnOff () {};
     void port_output (std::string output) {};

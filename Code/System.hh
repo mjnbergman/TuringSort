@@ -313,7 +313,7 @@ struct System
   ::iControl& port;
 
 
-  System(const dzn::locator&);
+  System(const dzn::locator&, int motorPin);
   void check_bindings() const;
   void dump_tree(std::ostream& os=std::clog) const;
 };
