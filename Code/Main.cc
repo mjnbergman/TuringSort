@@ -7,12 +7,15 @@
 
 #include <iostream>
 #include "System.hh"
+#include "wiringPi.h"
 
 int main(){
 
 	  dzn::locator locator;
 	  dzn::runtime runtime;
 	  dzn::illegal_handler illegal_handler;
+
+//	  wiringPiSetup();
 
 	  int motorPin = 5;
 

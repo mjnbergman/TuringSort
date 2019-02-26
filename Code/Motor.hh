@@ -6,6 +6,7 @@
  */
 
 #include "System.hh"
+#include "wiringPi.h"
 
 #ifndef CODE_MOTOR_HH_
 #define CODE_MOTOR_HH_
@@ -15,17 +16,17 @@ struct Motor : public skel::Motor{
 public:
 
 	Motor(const dzn::locator& dzn_locator, int pin) : skel::Motor(dzn_locator), motorPin(pin){
-		//pinMode(motorPin, OUTPUT);
+//		pinMode(motorPin, OUTPUT);
 		std::cout << "motorPin initialized as output at pin 5!" << std::endl;
 	};
     ~ Motor() {}
     void port_turnOn () {
     	std::cout << "Motor turned on!";
-    	//DigitalWrite(motorPin, HIGH);
+  //  	digitalWrite(motorPin, HIGH);
     };
     void port_turnOff () {
     	std::cout << "Motor turned off!";
-    	//DigitalWrite(motorPin, LOW);
+    //	digitalWrite(motorPin, LOW);
     };
 
 private:
