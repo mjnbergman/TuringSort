@@ -1,0 +1,9 @@
+//Dezyne
+.project
+.cproject
+.settings/*
+.autotools
+Debug/*
+
+//MacOS
+.DS_STORE

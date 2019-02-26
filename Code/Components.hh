@@ -219,9 +219,9 @@ namespace skel {
 
     }
     virtual ~ LightSensor() {}
-    virtual std::ostream& stream_members(std::ostream& os) const { return os; } // @suppress("Type cannot be resolved")
+    virtual std::ostream& stream_members(std::ostream& os) const { return os; }
     void check_bindings() const;
-    void dump_tree(std::ostream& os) const; // @suppress("Type cannot be resolved")
+    void dump_tree(std::ostream& os) const;
     void set_state(std::map<std::string,std::map<std::string,std::string> >){}
     void set_state(std::map<std::string,std::string>_alist){}
     friend std::ostream& operator << (std::ostream& os, const LightSensor& m)  {
@@ -306,7 +306,7 @@ struct ReflectionControl
 
 #include "LightSensor.hh"
 #include "Light.hh"
-#include "LightSensor.hh"
+
 
 
 struct ReflectionSensor
