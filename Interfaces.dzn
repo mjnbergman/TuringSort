@@ -3,23 +3,33 @@ extern int $int$;
 
 interface iMotor
 {
-	in void turnOn();
+	in void turnClockwise();
 	in void turnOff();
+	in void turnCounterClockwise();
 	out void error();
 	
 	behaviour {
-		enum State {On, Off};
+		enum State {Clock, Off, CounterClock};
 		State state = State.Off;
 		
-		[state.On] {
-			on turnOn: illegal;
+		[state.Clock] {
+			on turnClockwise: illegal;
+			on turnCounterClockwise: illegal;
 			on turnOff: state = State.Off;
 			on inevitable: {error; state = State.Off;}
 		}
 		
 		[state.Off] {
-			on turnOn: state = State.On;
+			on turnClockwise: state = State.Clock;
 			on turnOff: {}
+			on turnCounterClockwise: state = State.CounterClock;
+		}
+		
+		[state.CounterClock] {
+			on turnClockwise: illegal;
+			on turnCounterClockwise: illegal;
+			on turnOff: state = State.Off;
+			on inevitable: {error; state = State.Off;}
 		}
 	}
 }
@@ -76,6 +86,7 @@ interface iControl {
 	enum State {On, Off};
 	in void turnOn();
 	in void turnOff();
+	out void error();
 	
 	behaviour {
 		State state = State.Off;
@@ -87,6 +98,37 @@ interface iControl {
 		[state.On] {
 			on turnOn: illegal;
 			on turnOff: state = State.Off;
+			on inevitable: {error; state = State.Off;}
 		}
 	}
+}
+
+interface iConveyerBelt {
+	enum State {On, Off};
+	enum Direction {Clockwise, CounterClockwise};
+	in void turnOn();
+	in void turnOff();
+	in void setClockwise();
+	in void setCounterClockwise();
+	out void error();
+	
+	behaviour {
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On;
+			on turnOff: {}
+			on setClockwise: {}
+			on setCounterClockwise: {}
+		}
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+			on setClockwise: illegal;
+			on setCounterClockwise: illegal;
+			on inevitable: {error; state = State.Off;}
+		}
+		
+	}
+	
 }

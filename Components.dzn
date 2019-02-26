@@ -52,3 +52,43 @@ component ReflectionSensor {
 		light.port <=> control.light;	
 	}
 }
+
+component ConveyerBeltControl {
+	provides iConveyerBelt port;
+	requires iMotor motor;
+	
+	behaviour {
+		iConveyerBelt.Direction direction = iConveyerBelt.Direction.Clockwise;
+		iConveyerBelt.State state = iConveyerBelt.State.Off;
+		
+		[state.Off] {
+			on port.setClockwise(): direction = iConveyerBelt.Direction.Clockwise;
+			on port.setCounterClockwise(): direction = iConveyerBelt.Direction.CounterClockwise;
+			on port.turnOn(): [direction.Clockwise] {state = iConveyerBelt.State.On; motor.turnClockwise();}
+			on port.turnOn(): [direction.CounterClockwise] {state = iConveyerBelt.State.On; motor.turnCounterClockwise();}
+			on port.turnOff(): {} 
+			on motor.error(): illegal;
+		}
+		
+		[state.On] {
+			on port.setClockwise(): illegal;
+			on port.setCounterClockwise(): illegal;
+			on port.turnOn(): illegal;
+			on port.turnOff(): {motor.turnOff(); state = iConveyerBelt.State.Off;}
+			on motor.error(): {motor.turnOff(); port.error(); state = iConveyerBelt.State.Off;}
+		}
+		
+	}
+}
+
+component ConveyerBelt {
+	provides iConveyerBelt port;
+	
+	system {
+		ConveyerBeltControl control;
+		Motor motor;
+		
+		control.port <=> port;
+		motor.port <=> control.motor;
+	}
+}

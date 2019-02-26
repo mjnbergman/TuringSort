@@ -5,13 +5,13 @@ component System {
 	provides iControl port;
 	
 	system {
-		Motor motor;
 		Test test;
+		ConveyerBelt belt;
 		ReflectionSensor sensor;
 		Display display;
 		
 		port <=> test.port;
-		motor.port <=> test.motor;
+		belt.port <=> test.belt;
 		sensor.port <=> test.reflectionSensor;
 		display.port <=> test.output; 
 	}
@@ -19,9 +19,9 @@ component System {
 
 component Test {
 	provides iControl port;
-	requires iMotor motor;
 	requires iSensor reflectionSensor;
 	requires iOutput output;
+	requires iConveyerBelt belt;
 	
 	behaviour {
 		iControl.State state = iControl.State.Off;
@@ -30,15 +30,22 @@ component Test {
 			on port.turnOn(): illegal;
 			on port.turnOff(): { 
 				state = iControl.State.Off; 
-				motor.turnOff();
+				belt.turnOff();
 				reflectionSensor.turnOff(); 
 				output.turnOff();
 			}
+			on belt.error(): {
+				state = iControl.State.Off;
+				belt.turnOff();
+				reflectionSensor.turnOff();
+				output.turnOff();
+				port.error();
+			}
 		}
 		[state.Off] {
-			on port.turnOn(): { state = iControl.State.On; }
+			on port.turnOn(): { state = iControl.State.On; belt.turnOn();}
 			on port.turnOff(): {}
-			on motor.error(): illegal;
+			on belt.error(): illegal;
 		}
 	}
 }
