@@ -51,8 +51,9 @@ namespace skel {
 
 
     {
-      port.in.turnOn = [&](){return dzn::call_in(this,[=]{ return port_turnOn();}, this->port.meta, "turnOn");};
+      port.in.turnClockwise = [&](){return dzn::call_in(this,[=]{ return port_turnClockwise();}, this->port.meta, "turnClockwise");};
       port.in.turnOff = [&](){return dzn::call_in(this,[=]{ return port_turnOff();}, this->port.meta, "turnOff");};
+      port.in.turnCounterClockwise = [&](){return dzn::call_in(this,[=]{ return port_turnCounterClockwise();}, this->port.meta, "turnCounterClockwise");};
 
 
     }
@@ -66,8 +67,9 @@ namespace skel {
       return m.stream_members(os);
     }
     private:
-    virtual void port_turnOn () = 0;
+    virtual void port_turnClockwise () = 0;
     virtual void port_turnOff () = 0;
+    virtual void port_turnCounterClockwise () = 0;
 
   };
 }
@@ -290,11 +292,57 @@ struct ReflectionControl
   void port_turnOn();
   void port_turnOff();
   void port_calibrate();
-  void sensor_measures();
+  void light_error();
+  void sensor_measures(int value);
 
 };
 
 #endif // REFLECTIONCONTROL_HH
+
+/********************************** COMPONENT *********************************/
+/********************************** COMPONENT *********************************/
+#ifndef CONVEYERBELTCONTROL_HH
+#define CONVEYERBELTCONTROL_HH
+
+#include "Interfaces.hh"
+#include "Interfaces.hh"
+
+
+
+struct ConveyerBeltControl
+{
+  dzn::meta dzn_meta;
+  dzn::runtime& dzn_rt;
+  dzn::locator const& dzn_locator;
+
+  ::iConveyerBelt::Direction::type direction;
+  ::iConveyerBelt::State::type state;
+
+
+  std::function<void ()> out_port;
+
+  ::iConveyerBelt port;
+
+  ::iMotor motor;
+
+
+  ConveyerBeltControl(const dzn::locator&);
+  void check_bindings() const;
+  void dump_tree(std::ostream& os) const;
+  friend std::ostream& operator << (std::ostream& os, const ConveyerBeltControl& m)  {
+    (void)m;
+    return os << "[" << m.direction <<", " << m.state <<"]" ;
+  }
+  private:
+  void port_turnOn();
+  void port_turnOff();
+  void port_setClockwise();
+  void port_setCounterClockwise();
+  void motor_error();
+
+};
+
+#endif // CONVEYERBELTCONTROL_HH
 
 /********************************** COMPONENT *********************************/
 /***********************************  SYSTEM  ***********************************/
@@ -329,6 +377,38 @@ struct ReflectionSensor
 };
 
 #endif // REFLECTIONSENSOR_HH
+
+/***********************************  SYSTEM  ***********************************/
+/***********************************  SYSTEM  ***********************************/
+#ifndef CONVEYERBELT_HH
+#define CONVEYERBELT_HH
+
+
+#include <dzn/locator.hh>
+
+#include "Motor.hh"
+
+
+
+struct ConveyerBelt
+{
+  dzn::meta dzn_meta;
+  dzn::runtime& dzn_rt;
+  dzn::locator const& dzn_locator;
+
+
+  ::ConveyerBeltControl control;
+  ::Motor motor;
+
+  ::iConveyerBelt& port;
+
+
+  ConveyerBelt(const dzn::locator&);
+  void check_bindings() const;
+  void dump_tree(std::ostream& os=std::clog) const;
+};
+
+#endif // CONVEYERBELT_HH
 
 /***********************************  SYSTEM  ***********************************/
 

@@ -51,8 +51,9 @@ namespace skel {
 
 
     {
-      port.in.turnOn = [&](){return dzn::call_in(this,[=]{ return port_turnOn();}, this->port.meta, "turnOn");};
+      port.in.turnClockwise = [&](){return dzn::call_in(this,[=]{ return port_turnClockwise();}, this->port.meta, "turnClockwise");};
       port.in.turnOff = [&](){return dzn::call_in(this,[=]{ return port_turnOff();}, this->port.meta, "turnOff");};
+      port.in.turnCounterClockwise = [&](){return dzn::call_in(this,[=]{ return port_turnCounterClockwise();}, this->port.meta, "turnCounterClockwise");};
 
 
     }
@@ -66,8 +67,9 @@ namespace skel {
       return m.stream_members(os);
     }
     private:
-    virtual void port_turnOn () = 0;
+    virtual void port_turnClockwise () = 0;
     virtual void port_turnOff () = 0;
+    virtual void port_turnCounterClockwise () = 0;
 
   };
 }
@@ -262,9 +264,9 @@ struct Test
 
   ::iControl port;
 
-  ::iMotor motor;
   ::iSensor reflectionSensor;
   ::iOutput output;
+  ::iConveyerBelt belt;
 
 
   Test(const dzn::locator&);
@@ -277,8 +279,8 @@ struct Test
   private:
   void port_turnOn();
   void port_turnOff();
-  void motor_error();
-  void reflectionSensor_measures();
+  void reflectionSensor_measures(int value);
+  void belt_error();
 
 };
 
@@ -292,7 +294,7 @@ struct Test
 
 #include <dzn/locator.hh>
 
-#include "Motor.hh"
+#include "Components.hh"
 #include "Components.hh"
 #include "Display.hh"
 
@@ -305,15 +307,15 @@ struct System
   dzn::locator const& dzn_locator;
 
 
-  ::Motor motor;
   ::Test test;
+  ::ConveyerBelt belt;
   ::ReflectionSensor sensor;
   ::Display display;
 
   ::iControl& port;
 
 
-  System(const dzn::locator&, int motorPin);
+  System(const dzn::locator&);
   void check_bindings() const;
   void dump_tree(std::ostream& os=std::clog) const;
 };

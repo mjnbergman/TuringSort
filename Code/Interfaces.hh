@@ -39,7 +39,7 @@ struct iMotor
   {
     enum type
     {
-      On,Off
+      Clock,Off,CounterClock
     };
   };
 
@@ -48,8 +48,9 @@ struct iMotor
 
   struct
   {
-    std::function< void()> turnOn;
+    std::function< void()> turnClockwise;
     std::function< void()> turnOff;
+    std::function< void()> turnCounterClockwise;
   } in;
 
   struct
@@ -62,8 +63,9 @@ struct iMotor
 
   void check_bindings() const
   {
-    if (! in.turnOn) throw dzn::binding_error(meta, "in.turnOn");
+    if (! in.turnClockwise) throw dzn::binding_error(meta, "in.turnClockwise");
     if (! in.turnOff) throw dzn::binding_error(meta, "in.turnOff");
+    if (! in.turnCounterClockwise) throw dzn::binding_error(meta, "in.turnCounterClockwise");
 
     if (! out.error) throw dzn::binding_error(meta, "out.error");
 
@@ -85,8 +87,9 @@ inline std::string to_string(::iMotor::State::type v)
 {
   switch(v)
   {
-    case ::iMotor::State::On: return "State_On";
+    case ::iMotor::State::Clock: return "State_Clock";
     case ::iMotor::State::Off: return "State_Off";
+    case ::iMotor::State::CounterClock: return "State_CounterClock";
 
   }
   return "";
@@ -98,8 +101,9 @@ inline std::string to_string(::iMotor::State::type v)
 inline ::iMotor::State::type to_iMotor_State(std::string s)
 {
   static std::map<std::string, ::iMotor::State::type> m = {
-    {"State_On", ::iMotor::State::On},
+    {"State_Clock", ::iMotor::State::Clock},
     {"State_Off", ::iMotor::State::Off},
+    {"State_CounterClock", ::iMotor::State::CounterClock},
   };
   return m.at(s);
 }
@@ -229,7 +233,7 @@ struct iSensor
 
   struct
   {
-    std::function< void()> measures;
+    std::function< void(int value)> measures;
   } out;
 
   dzn::port::meta meta;
@@ -317,6 +321,7 @@ struct iControl
 
   struct
   {
+    std::function< void()> error;
   } out;
 
   dzn::port::meta meta;
@@ -327,6 +332,7 @@ struct iControl
     if (! in.turnOn) throw dzn::binding_error(meta, "in.turnOn");
     if (! in.turnOff) throw dzn::binding_error(meta, "in.turnOff");
 
+    if (! out.error) throw dzn::binding_error(meta, "out.error");
 
   }
 };
@@ -368,6 +374,135 @@ inline ::iControl::State::type to_iControl_State(std::string s)
 
 
 #endif // ICONTROL_HH
+
+/********************************** INTERFACE *********************************/
+/********************************** INTERFACE *********************************/
+#ifndef ICONVEYERBELT_HH
+#define ICONVEYERBELT_HH
+
+
+
+
+struct iConveyerBelt
+{
+#ifndef ENUM_iConveyerBelt_State
+#define ENUM_iConveyerBelt_State 1
+
+
+  struct State
+  {
+    enum type
+    {
+      On,Off
+    };
+  };
+
+
+#endif // ENUM_iConveyerBelt_State
+#ifndef ENUM_iConveyerBelt_Direction
+#define ENUM_iConveyerBelt_Direction 1
+
+
+  struct Direction
+  {
+    enum type
+    {
+      Clockwise,CounterClockwise
+    };
+  };
+
+
+#endif // ENUM_iConveyerBelt_Direction
+
+  struct
+  {
+    std::function< void()> turnOn;
+    std::function< void()> turnOff;
+    std::function< void()> setClockwise;
+    std::function< void()> setCounterClockwise;
+  } in;
+
+  struct
+  {
+    std::function< void()> error;
+  } out;
+
+  dzn::port::meta meta;
+  inline iConveyerBelt(const dzn::port::meta& m) : meta(m) {}
+
+  void check_bindings() const
+  {
+    if (! in.turnOn) throw dzn::binding_error(meta, "in.turnOn");
+    if (! in.turnOff) throw dzn::binding_error(meta, "in.turnOff");
+    if (! in.setClockwise) throw dzn::binding_error(meta, "in.setClockwise");
+    if (! in.setCounterClockwise) throw dzn::binding_error(meta, "in.setCounterClockwise");
+
+    if (! out.error) throw dzn::binding_error(meta, "out.error");
+
+  }
+};
+
+inline void connect (iConveyerBelt& provided, iConveyerBelt& required)
+{
+  provided.out = required.out;
+  required.in = provided.in;
+  provided.meta.requires = required.meta.requires;
+  required.meta.provides = provided.meta.provides;
+}
+
+
+#ifndef ENUM_TO_STRING_iConveyerBelt_State
+#define ENUM_TO_STRING_iConveyerBelt_State 1
+inline std::string to_string(::iConveyerBelt::State::type v)
+{
+  switch(v)
+  {
+    case ::iConveyerBelt::State::On: return "State_On";
+    case ::iConveyerBelt::State::Off: return "State_Off";
+
+  }
+  return "";
+}
+#endif // ENUM_TO_STRING_iConveyerBelt_State
+#ifndef ENUM_TO_STRING_iConveyerBelt_Direction
+#define ENUM_TO_STRING_iConveyerBelt_Direction 1
+inline std::string to_string(::iConveyerBelt::Direction::type v)
+{
+  switch(v)
+  {
+    case ::iConveyerBelt::Direction::Clockwise: return "Direction_Clockwise";
+    case ::iConveyerBelt::Direction::CounterClockwise: return "Direction_CounterClockwise";
+
+  }
+  return "";
+}
+#endif // ENUM_TO_STRING_iConveyerBelt_Direction
+
+#ifndef STRING_TO_ENUM_iConveyerBelt_State
+#define STRING_TO_ENUM_iConveyerBelt_State 1
+inline ::iConveyerBelt::State::type to_iConveyerBelt_State(std::string s)
+{
+  static std::map<std::string, ::iConveyerBelt::State::type> m = {
+    {"State_On", ::iConveyerBelt::State::On},
+    {"State_Off", ::iConveyerBelt::State::Off},
+  };
+  return m.at(s);
+}
+#endif // STRING_TO_ENUM_iConveyerBelt_State
+#ifndef STRING_TO_ENUM_iConveyerBelt_Direction
+#define STRING_TO_ENUM_iConveyerBelt_Direction 1
+inline ::iConveyerBelt::Direction::type to_iConveyerBelt_Direction(std::string s)
+{
+  static std::map<std::string, ::iConveyerBelt::Direction::type> m = {
+    {"Direction_Clockwise", ::iConveyerBelt::Direction::Clockwise},
+    {"Direction_CounterClockwise", ::iConveyerBelt::Direction::CounterClockwise},
+  };
+  return m.at(s);
+}
+#endif // STRING_TO_ENUM_iConveyerBelt_Direction
+
+
+#endif // ICONVEYERBELT_HH
 
 /********************************** INTERFACE *********************************/
 

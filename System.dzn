@@ -41,9 +41,10 @@ component Test {
 				output.turnOff();
 				port.error();
 			}
+			on reflectionSensor.measures(value): { output.output(value); }
 		}
 		[state.Off] {
-			on port.turnOn(): { state = iControl.State.On; belt.turnOn();}
+			on port.turnOn(): { state = iControl.State.On; reflectionSensor.turnOn(); reflectionSensor.calibrate(); output.turnOn(); belt.turnOn();}
 			on port.turnOff(): {}
 			on belt.error(): illegal;
 		}

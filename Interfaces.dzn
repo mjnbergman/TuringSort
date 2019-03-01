@@ -61,7 +61,7 @@ interface iSensor {
 	in void turnOn();
 	in void turnOff();
 	in void calibrate();
-	out void measures();
+	out void measures(in int value);
 	
 	behaviour {
 		enum State {On, Off};
@@ -77,6 +77,7 @@ interface iSensor {
 			on turnOn: illegal;
 			on turnOff: state = State.Off;
 			on calibrate: {}
+			on inevitable: measures;
 		}	
 	}
 	

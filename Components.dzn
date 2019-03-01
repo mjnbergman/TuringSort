@@ -35,6 +35,8 @@ component ReflectionControl {
 			on port.turnOn(): illegal;
 			on port.turnOff(): {state = State.Off; light.turnOff(); sensor.turnOff();}
 			on port.calibrate(): sensor.calibrate();
+			on sensor.measures(value): port.measures(value);
+			on light.error(): {}
 		}	
 	}
 }
