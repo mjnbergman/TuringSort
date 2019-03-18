@@ -4,6 +4,51 @@ component Motor {
 	provides iMotor port;
 }
 
+component Pusher {
+	provides iPusher port;
+	requires iMotor motor;
+	requires iTimer timer;
+	
+	behaviour {
+		iMotor.State motorState = iMotor.State.Off;
+		iPusher.State state = iPusher.State.Up;
+		//If motorState is not Off, pusher-state state is not reached yet.
+		
+		[state.Up] {
+			[motorState.Off] {
+				on port.down(): { motor.turnClockwise(); motorState = iMotor.State.CounterClock; state = iPusher.State.Down; }
+				on port.up(): {}
+				on port.isMoving(): reply(false);
+			}
+			[motorState.Clock] {
+				on port.down(): illegal;
+				on port.up(): {}
+				on port.isMoving(): reply(true);
+				on timer.timeout(): {motorState = iMotor.State.Off; motor.turnOff(); }
+			}
+		}
+		
+		[state.Down] {
+			[motorState.Off] {
+				on port.up(): { motor.turnCounterClockwise(); motorState = iMotor.State.Clock; state = iPusher.State.Up; }
+				on port.down(): {}
+				on port.isMoving(): reply(false);
+			}
+			[motorState.CounterClock] {
+				on port.up(): illegal;
+				on port.down(): {}
+				on port.isMoving(): reply(true);
+				on timer.timeout(): {motorState = iMotor.State.Off; motor.turnOff(); }
+			}
+		}
+		
+	}
+}
+
+component Timer {
+	provides iTimer port;
+}
+
 component Display {
 	provides iOutput port;
 }
@@ -16,8 +61,8 @@ component LightSensor {
 	provides iSensor port;
 }
 
-component ReflectionControl {
-	provides iSensor port;
+component BlackWhiteSensorControl {
+	provides iBlackWhiteSensor port;
 	requires iControl light;
 	requires iSensor sensor;
 	
@@ -35,17 +80,16 @@ component ReflectionControl {
 			on port.turnOn(): illegal;
 			on port.turnOff(): {state = State.Off; light.turnOff(); sensor.turnOff();}
 			on port.calibrate(): sensor.calibrate();
-			on sensor.measures(value): port.measures(value);
-			on light.error(): {}
+			on sensor.measures(value): {}
 		}	
 	}
 }
 
-component ReflectionSensor {
-	provides iSensor port;
+component BlackWhiteSensor {
+	provides iBlackWhiteSensor port;
 	
 	system {
-		ReflectionControl control;
+		BlackWhiteSensorControl control;
 		LightSensor sensor;
 		Light light;
 		
@@ -69,7 +113,6 @@ component ConveyerBeltControl {
 			on port.turnOn(): [direction.Clockwise] {state = iConveyerBelt.State.On; motor.turnClockwise();}
 			on port.turnOn(): [direction.CounterClockwise] {state = iConveyerBelt.State.On; motor.turnCounterClockwise();}
 			on port.turnOff(): {} 
-			on motor.error(): illegal;
 		}
 		
 		[state.On] {
@@ -77,7 +120,6 @@ component ConveyerBeltControl {
 			on port.setCounterClockwise(): illegal;
 			on port.turnOn(): illegal;
 			on port.turnOff(): {motor.turnOff(); state = iConveyerBelt.State.Off;}
-			on motor.error(): {motor.turnOff(); port.error(); state = iConveyerBelt.State.Off;}
 		}
 		
 	}
@@ -92,5 +134,157 @@ component ConveyerBelt {
 		
 		control.port <=> port;
 		motor.port <=> control.motor;
+	}
+}
+
+component PusherControl {
+	provides iPusherControl control;
+	requires iPusher push1;
+	requires iPusher push2;
+	requires iPusher push3;
+	
+	behaviour {
+		iPusherControl.BoxState state = iPusherControl.BoxState.WasteBox;
+		bool isMoving1 = false;
+		bool isMoving2 = false;
+		bool isMoving3 = false;
+		
+		//Returns whether any of the components is moving
+		bool isMoving() {
+			return isMoving1 || isMoving2 || isMoving3;
+		}
+		
+		//Behaviour
+		
+		//When each component stops moving, set isMoving to false;
+		on push1.stopped(): isMoving1 = false;
+		on push2.stopped(): isMoving2 = false;
+		on push3.stopped(): isMoving3 = false;
+		on control.current(): reply(state);
+		
+		[state.Box1] {
+			on control.box1(): reply(true);
+			on control.box2(): {
+				bool temp = isMoving(); 
+				if (!temp) {
+					push1.up(); push2.down(); state = iPusherControl.BoxState.Box2; isMoving1 = true; isMoving2 = true;
+				}
+				reply(!temp);
+			}
+			on control.box3(): {
+				bool temp = isMoving(); 
+				if (!temp) {
+					push1.up(); push3.down(); state = iPusherControl.BoxState.Box3; isMoving1 = true; isMoving3 = true;
+				}
+				reply(!temp);
+			}
+			on control.wasteBox(): {
+				bool temp = isMoving(); 
+				if (!temp) {
+					push1.up(); state = iPusherControl.BoxState.WasteBox; isMoving1 = true; 
+				}
+				reply(!temp);
+			}
+		}
+		[state.Box2] {
+			on control.box1(): {
+				bool temp = isMoving(); 
+				if(!temp) {
+					push2.up(); push1.down(); state = iPusherControl.BoxState.Box1; isMoving2 = true; isMoving1 = true;
+				}
+				reply(!temp);
+			}
+			on control.box2(): reply(true);
+			on control.box3(): {
+				bool temp = isMoving(); 
+				if(!temp) {
+					push2.up(); push3.down(); state = iPusherControl.BoxState.Box3; isMoving2 = true; isMoving3 = true;
+				}
+				reply(!temp);
+			}
+			on control.wasteBox(): { 
+				bool temp = isMoving(); 
+				if(!temp) {
+					push2.up(); state = iPusherControl.BoxState.WasteBox; isMoving2 = true;
+				}
+				reply(!temp);
+			}
+		}
+		[state.Box3] {
+			on control.box1(): { 
+				bool temp = isMoving(); 
+				if(!temp) {
+					push3.up(); push1.down(); state = iPusherControl.BoxState.Box1; isMoving3 = true; isMoving1 = true;
+				}
+				reply(!temp);
+			}
+			on control.box2(): { 
+				bool temp = isMoving(); 
+				if(!temp) {
+					push3.up(); push2.down(); state = iPusherControl.BoxState.Box2; isMoving3 = true; isMoving2 = true;
+				}
+				reply(!temp);
+			}
+			on control.box3(): reply(true);
+			on control.wasteBox(): { 
+				bool temp = isMoving(); 
+				if(!temp) {
+					push3.up(); state = iPusherControl.BoxState.WasteBox; isMoving3 = true;
+				}
+				reply(!temp);
+			}
+		}	
+		[state.WasteBox] {
+			on control.box1(): {
+				bool temp = isMoving(); 
+				if(!temp) {
+					push1.down(); state = iPusherControl.BoxState.Box1; isMoving1 = true;
+				}
+				reply(!temp);
+			}
+			on control.box2(): { 
+				bool temp = isMoving(); 
+				if(!temp) {
+					push2.down(); state = iPusherControl.BoxState.Box2; isMoving1 = true;
+				}
+				reply(!temp);
+			}
+			on control.box3(): { 
+				bool temp = isMoving(); 
+				if(!temp) {
+					push3.down(); state = iPusherControl.BoxState.Box3; isMoving1 = true;
+				}
+				reply(!temp);
+			}
+			on control.wasteBox(): reply(true);
+		}
+	}
+}
+
+component PusherSystem {
+	provides iPusherControl port;
+	
+	system {
+		PusherControl control;
+		Pusher p1;
+		Timer t1;
+		Motor m1;
+		Pusher p2;
+		Timer t2;
+		Motor m2;
+		Pusher p3;
+		Timer t3;
+		Motor m3;
+		
+		port <=> control.control;
+		control.push1 <=> p1.port;
+		p1.timer <=> t1.port;
+		p1.motor <=> m1.port;
+		control.push2 <=> p2.port;
+		p2.timer <=> t2.port;
+		p2.motor <=> m2.port;
+		control.push3 <=> p3.port;
+		p3.timer <=> t3.port;
+		p3.motor <=> m3.port;
 	}
 }

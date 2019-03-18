@@ -6,17 +6,16 @@ interface iMotor
 	in void turnClockwise();
 	in void turnOff();
 	in void turnCounterClockwise();
-	out void error();
 	
+	enum State {Clock, Off, CounterClock};
 	behaviour {
-		enum State {Clock, Off, CounterClock};
+		
 		State state = State.Off;
 		
 		[state.Clock] {
 			on turnClockwise: illegal;
 			on turnCounterClockwise: illegal;
 			on turnOff: state = State.Off;
-			on inevitable: {error; state = State.Off;}
 		}
 		
 		[state.Off] {
@@ -29,7 +28,6 @@ interface iMotor
 			on turnClockwise: illegal;
 			on turnCounterClockwise: illegal;
 			on turnOff: state = State.Off;
-			on inevitable: {error; state = State.Off;}
 		}
 	}
 }
@@ -83,11 +81,40 @@ interface iSensor {
 	
 }
 
+interface iBlackWhiteSensor {
+	in void turnOn();
+	in void turnOff();
+	in void calibrate();
+	out void measuresBlack();
+	out void measuresWhite();
+	out void measuresError();
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On; 
+			on turnOff: {}
+			on calibrate: illegal;
+		}
+		
+		[state.On] {
+			on turnOn: illegal;
+			on turnOff: state = State.Off;
+			on calibrate: {}
+			on inevitable: measuresBlack;
+			on inevitable: measuresWhite;
+			on inevitable: measuresError;
+		}	
+	}
+	
+}
+
 interface iControl {
 	enum State {On, Off};
 	in void turnOn();
 	in void turnOff();
-	out void error();
 	
 	behaviour {
 		State state = State.Off;
@@ -99,7 +126,6 @@ interface iControl {
 		[state.On] {
 			on turnOn: illegal;
 			on turnOff: state = State.Off;
-			on inevitable: {error; state = State.Off;}
 		}
 	}
 }
@@ -111,7 +137,6 @@ interface iConveyerBelt {
 	in void turnOff();
 	in void setClockwise();
 	in void setCounterClockwise();
-	out void error();
 	
 	behaviour {
 		State state = State.Off;
@@ -127,9 +152,87 @@ interface iConveyerBelt {
 			on turnOff: state = State.Off;
 			on setClockwise: illegal;
 			on setCounterClockwise: illegal;
-			on inevitable: {error; state = State.Off;}
 		}
 		
 	}
 	
+}
+
+interface CommunicationProtocol {
+	in void sortMode();
+//	in void errorsResolved();
+//	in void startup();
+//	in void shutdown();
+	
+	behaviour {
+		on sortMode: {}
+	}
+}
+
+interface iPusherControl {
+	in bool box1();
+	in bool box2();
+	in bool box3();
+	in bool wasteBox();
+	in BoxState current();
+	enum BoxState {Box1, Box2, Box3, WasteBox};
+	
+	behaviour {
+		BoxState state = BoxState.WasteBox;
+		
+		on box1: { state = BoxState.Box1; reply(true); }
+		on box1: reply(false);
+		on box2: { state = BoxState.Box2; reply(true); }
+		on box2: reply(false);
+		on box3: { state = BoxState.Box3; reply(true); }
+		on box3: reply(false);
+		on wasteBox: { state = BoxState.WasteBox; reply(true); }
+		on wasteBox: reply(false);
+		on current: reply(state);
+	}
+}
+
+interface iPusher {
+	in void down();
+	in void up();
+	in bool isMoving();
+	out void stopped();
+	
+	enum State {Down, Up};
+	
+	behaviour {
+		bool moving = false;
+		
+		on isMoving: reply(moving); 
+		[moving] {
+			on inevitable: { stopped; moving = false; }
+			on up: illegal;
+			on down: illegal;
+		} 
+		[!moving] {
+			on down: moving = true;
+			on up: moving = true;
+		}
+	}
+}
+
+interface iTimer {
+  in void createTimer();
+  in void cancelTimer();
+  out void timeout();
+
+  behaviour {
+    enum State {Idle, Busy};
+    State state = State.Idle;
+
+    [state.Idle] {
+      on createTimer: {state = State.Busy;}
+      on cancelTimer: illegal;
+    }
+    [state.Busy] {
+      on createTimer: illegal;
+      on cancelTimer: {state = State.Idle;}
+      on inevitable: { timeout; state = State.Idle; }
+    }
+  }
 }

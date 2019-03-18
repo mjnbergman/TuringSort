@@ -2,51 +2,83 @@ import Interfaces.dzn;
 import Components.dzn;
 
 component System {
-	provides iControl port;
+	provides CommunicationProtocol port;
 	
 	system {
-		Test test;
+		SortingApplication app;
 		ConveyerBelt belt;
-		ReflectionSensor sensor;
+		BlackWhiteSensor sensor;
 		Display display;
+		PusherSystem pusherSystem;
 		
-		port <=> test.port;
-		belt.port <=> test.belt;
-		sensor.port <=> test.reflectionSensor;
-		display.port <=> test.output; 
+		port <=> app.comms;
+		belt.port <=> app.belt;
+		sensor.port <=> app.sensor;
+		display.port <=> app.output;
+		pusherSystem.port <=> app.pushers; 
 	}
 }
 
-component Test {
-	provides iControl port;
-	requires iSensor reflectionSensor;
+component SortingApplication {
+	provides CommunicationProtocol comms;
+	requires iBlackWhiteSensor sensor;
 	requires iOutput output;
 	requires iConveyerBelt belt;
+	requires iPusherControl pushers;
 	
 	behaviour {
-		iControl.State state = iControl.State.Off;
+		iConveyerBelt.State beltState = iConveyerBelt.State.On;
+		enum OperationMode { Sort };
+		OperationMode mode = OperationMode.Sort;
 		
-		[state.On] {
-			on port.turnOn(): illegal;
-			on port.turnOff(): { 
-				state = iControl.State.Off; 
-				belt.turnOff();
-				reflectionSensor.turnOff(); 
-				output.turnOff();
+		
+		/*
+		 * On Startup, a certain series of events will need to be executed.
+		 * This can be done in Dezyne, or, perhaps more fitting, in main.cc
+		 */
+		
+		/*
+		 * Perhaps a timer should be used here as well,
+		 * to only read values after a timeout.
+		 * This will be done to be sure that the pushers can be in the correct position,
+		 * when requested.
+		*/
+		[mode.Sort && beltState.On] {
+			on comms.sortMode(): {}
+			on sensor.measuresBlack(): {
+				bool s = pushers.box1();
+				if (!s) {
+					/*
+					 * Slow down the belt... (if possible?)
+					 * Then try again after a timeout
+					 * If successful, then speed up again
+					 * If not, stop all
+					*/ 
+				}
 			}
-			on belt.error(): {
-				state = iControl.State.Off;
-				belt.turnOff();
-				reflectionSensor.turnOff();
-				output.turnOff();
-				port.error();
+			on sensor.measuresWhite(): {
+				bool s = pushers.box2();
+				if (!s) {
+					/*
+					 * Slow down the belt... (if possible?)
+					 * Then try again after a timeout
+					 * If successful, then speed up again
+					 * If not, stop all
+					*/ 
+				}
 			}
-			on reflectionSensor.measures(value): { output.output(value); }
-		}
-		[state.Off] {
-			on port.turnOn(): { state = iControl.State.On; reflectionSensor.turnOn(); reflectionSensor.calibrate(); output.turnOn(); belt.turnOn();}
-			on port.turnOff(): {}
-			on belt.error(): illegal;
+			on sensor.measuresError(): {
+				// Measures a wrong object, eject in wasteBox
+				bool s = pushers.wasteBox();
+				if (!s) {
+					/*
+					 * Slow down the belt... (if possible?)
+					 * Then try again after a timeout
+					 * If successful, then speed up again
+					 * If not, stop all
+					*/ 
+				}
+			}
 		}
 	}
 }
