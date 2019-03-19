@@ -12,33 +12,34 @@ component Pusher {
 	behaviour {
 		iMotor.State motorState = iMotor.State.Off;
 		iPusher.State state = iPusher.State.Up;
+		double time;
 		//If motorState is not Off, pusher-state state is not reached yet.
 		
 		[state.Up] {
 			[motorState.Off] {
-				on port.down(): { motor.turnClockwise(); motorState = iMotor.State.CounterClock; state = iPusher.State.Down; }
-				on port.up(): {}
+				on port.down(): { motor.turnClockwise(); motorState = iMotor.State.CounterClock; state = iPusher.State.Down; timer.createTimer(time); }
+				on port.up(): { port.stopped(); }
 				on port.isMoving(): reply(false);
 			}
 			[motorState.Clock] {
 				on port.down(): illegal;
 				on port.up(): {}
 				on port.isMoving(): reply(true);
-				on timer.timeout(): {motorState = iMotor.State.Off; motor.turnOff(); }
+				on timer.timeout(): { port.stopped(); motorState = iMotor.State.Off; motor.turnOff(); }
 			}
 		}
 		
 		[state.Down] {
 			[motorState.Off] {
-				on port.up(): { motor.turnCounterClockwise(); motorState = iMotor.State.Clock; state = iPusher.State.Up; }
-				on port.down(): {}
+				on port.up(): { motor.turnCounterClockwise(); motorState = iMotor.State.Clock; state = iPusher.State.Up; timer.createTimer(time); }
+				on port.down(): { port.stopped(); }
 				on port.isMoving(): reply(false);
 			}
 			[motorState.CounterClock] {
 				on port.up(): illegal;
 				on port.down(): {}
 				on port.isMoving(): reply(true);
-				on timer.timeout(): {motorState = iMotor.State.Off; motor.turnOff(); }
+				on timer.timeout(): { port.stopped(); motorState = iMotor.State.Off; motor.turnOff(); }
 			}
 		}
 		
@@ -137,132 +138,150 @@ component ConveyerBelt {
 	}
 }
 
+//component PusherControl {
+//	provides iPusherControl control;
+//	requires iPusher push1;
+//	requires iPusher push2;
+//	requires iPusher push3;
+//	
+//	behaviour {
+//		iPusherControl.BoxState state = iPusherControl.BoxState.WasteBox;
+//		bool isMoving1 = false;
+//		bool isMoving2 = false;
+//		bool isMoving3 = false;
+//		
+//		//Returns whether any of the components is moving
+//		bool isMoving() {
+//			return isMoving1 || isMoving2 || isMoving3;
+//		}
+//		
+//		//Behaviour
+//		
+//		//When each component stops moving, set isMoving to false;
+//		on push1.stopped(): isMoving1 = false;
+//		on push2.stopped(): isMoving2 = false;
+//		on push3.stopped(): isMoving3 = false;
+//		on control.current(): reply(state);
+//		
+//		[state.Box1] {
+//			on control.box1(): reply(true);
+//			on control.box2(): {
+//				bool temp = isMoving(); 
+//				if (!temp) {
+//					push1.up(); push2.down(); state = iPusherControl.BoxState.Box2; isMoving1 = true; isMoving2 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.box3(): {
+//				bool temp = isMoving(); 
+//				if (!temp) {
+//					push1.up(); push3.down(); state = iPusherControl.BoxState.Box3; isMoving1 = true; isMoving3 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.wasteBox(): {
+//				bool temp = isMoving(); 
+//				if (!temp) {
+//					push1.up(); state = iPusherControl.BoxState.WasteBox; isMoving1 = true; 
+//				}
+//				reply(!temp);
+//			}
+//		}
+//		[state.Box2] {
+//			on control.box1(): {
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push2.up(); push1.down(); state = iPusherControl.BoxState.Box1; isMoving2 = true; isMoving1 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.box2(): reply(true);
+//			on control.box3(): {
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push2.up(); push3.down(); state = iPusherControl.BoxState.Box3; isMoving2 = true; isMoving3 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.wasteBox(): { 
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push2.up(); state = iPusherControl.BoxState.WasteBox; isMoving2 = true;
+//				}
+//				reply(!temp);
+//			}
+//		}
+//		[state.Box3] {
+//			on control.box1(): { 
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push3.up(); push1.down(); state = iPusherControl.BoxState.Box1; isMoving3 = true; isMoving1 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.box2(): { 
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push3.up(); push2.down(); state = iPusherControl.BoxState.Box2; isMoving3 = true; isMoving2 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.box3(): reply(true);
+//			on control.wasteBox(): { 
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push3.up(); state = iPusherControl.BoxState.WasteBox; isMoving3 = true;
+//				}
+//				reply(!temp);
+//			}
+//		}	
+//		[state.WasteBox] {
+//			on control.box1(): {
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push1.down(); state = iPusherControl.BoxState.Box1; isMoving1 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.box2(): { 
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push2.down(); state = iPusherControl.BoxState.Box2; isMoving1 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.box3(): { 
+//				bool temp = isMoving(); 
+//				if(!temp) {
+//					push3.down(); state = iPusherControl.BoxState.Box3; isMoving1 = true;
+//				}
+//				reply(!temp);
+//			}
+//			on control.wasteBox(): reply(true);
+//		}
+//	}
+//}
+
 component PusherControl {
-	provides iPusherControl control;
+	provides iPusherControl port;
 	requires iPusher push1;
 	requires iPusher push2;
 	requires iPusher push3;
 	
 	behaviour {
-		iPusherControl.BoxState state = iPusherControl.BoxState.WasteBox;
-		bool isMoving1 = false;
-		bool isMoving2 = false;
-		bool isMoving3 = false;
-		
-		//Returns whether any of the components is moving
-		bool isMoving() {
-			return isMoving1 || isMoving2 || isMoving3;
-		}
-		
-		//Behaviour
-		
-		//When each component stops moving, set isMoving to false;
-		on push1.stopped(): isMoving1 = false;
-		on push2.stopped(): isMoving2 = false;
-		on push3.stopped(): isMoving3 = false;
-		on control.current(): reply(state);
-		
-		[state.Box1] {
-			on control.box1(): reply(true);
-			on control.box2(): {
-				bool temp = isMoving(); 
-				if (!temp) {
-					push1.up(); push2.down(); state = iPusherControl.BoxState.Box2; isMoving1 = true; isMoving2 = true;
-				}
-				reply(!temp);
-			}
-			on control.box3(): {
-				bool temp = isMoving(); 
-				if (!temp) {
-					push1.up(); push3.down(); state = iPusherControl.BoxState.Box3; isMoving1 = true; isMoving3 = true;
-				}
-				reply(!temp);
-			}
-			on control.wasteBox(): {
-				bool temp = isMoving(); 
-				if (!temp) {
-					push1.up(); state = iPusherControl.BoxState.WasteBox; isMoving1 = true; 
-				}
-				reply(!temp);
-			}
-		}
-		[state.Box2] {
-			on control.box1(): {
-				bool temp = isMoving(); 
-				if(!temp) {
-					push2.up(); push1.down(); state = iPusherControl.BoxState.Box1; isMoving2 = true; isMoving1 = true;
-				}
-				reply(!temp);
-			}
-			on control.box2(): reply(true);
-			on control.box3(): {
-				bool temp = isMoving(); 
-				if(!temp) {
-					push2.up(); push3.down(); state = iPusherControl.BoxState.Box3; isMoving2 = true; isMoving3 = true;
-				}
-				reply(!temp);
-			}
-			on control.wasteBox(): { 
-				bool temp = isMoving(); 
-				if(!temp) {
-					push2.up(); state = iPusherControl.BoxState.WasteBox; isMoving2 = true;
-				}
-				reply(!temp);
-			}
-		}
-		[state.Box3] {
-			on control.box1(): { 
-				bool temp = isMoving(); 
-				if(!temp) {
-					push3.up(); push1.down(); state = iPusherControl.BoxState.Box1; isMoving3 = true; isMoving1 = true;
-				}
-				reply(!temp);
-			}
-			on control.box2(): { 
-				bool temp = isMoving(); 
-				if(!temp) {
-					push3.up(); push2.down(); state = iPusherControl.BoxState.Box2; isMoving3 = true; isMoving2 = true;
-				}
-				reply(!temp);
-			}
-			on control.box3(): reply(true);
-			on control.wasteBox(): { 
-				bool temp = isMoving(); 
-				if(!temp) {
-					push3.up(); state = iPusherControl.BoxState.WasteBox; isMoving3 = true;
-				}
-				reply(!temp);
-			}
-		}	
-		[state.WasteBox] {
-			on control.box1(): {
-				bool temp = isMoving(); 
-				if(!temp) {
-					push1.down(); state = iPusherControl.BoxState.Box1; isMoving1 = true;
-				}
-				reply(!temp);
-			}
-			on control.box2(): { 
-				bool temp = isMoving(); 
-				if(!temp) {
-					push2.down(); state = iPusherControl.BoxState.Box2; isMoving1 = true;
-				}
-				reply(!temp);
-			}
-			on control.box3(): { 
-				bool temp = isMoving(); 
-				if(!temp) {
-					push3.down(); state = iPusherControl.BoxState.Box3; isMoving1 = true;
-				}
-				reply(!temp);
-			}
-			on control.wasteBox(): reply(true);
-		}
+		on port.enqueueBox1(time): {}
+		on port.enqueueBox2(time): {}
+		on port.enqueueBox3(time): {}
+		on port.enqueueBox4(time): {}
+		on push1.stopped(): {}
+		on push2.stopped(): {}
+		on push3.stopped(): {}
 	}
 }
 
 component PusherSystem {
 	provides iPusherControl port;
+	
 	
 	system {
 		PusherControl control;
@@ -276,7 +295,7 @@ component PusherSystem {
 		Timer t3;
 		Motor m3;
 		
-		port <=> control.control;
+		port <=> control.port;
 		control.push1 <=> p1.port;
 		p1.timer <=> t1.port;
 		p1.motor <=> m1.port;

@@ -8,13 +8,13 @@ component System {
 		SortingApplication app;
 		ConveyerBelt belt;
 		BlackWhiteSensor sensor;
-		Display display;
+		//Display display;
 		PusherSystem pusherSystem;
 		
 		port <=> app.comms;
 		belt.port <=> app.belt;
 		sensor.port <=> app.sensor;
-		display.port <=> app.output;
+		//display.port <=> app.output;
 		pusherSystem.port <=> app.pushers; 
 	}
 }
@@ -22,7 +22,7 @@ component System {
 component SortingApplication {
 	provides CommunicationProtocol comms;
 	requires iBlackWhiteSensor sensor;
-	requires iOutput output;
+	//requires iOutput output;
 	requires iConveyerBelt belt;
 	requires iPusherControl pushers;
 	
@@ -30,7 +30,10 @@ component SortingApplication {
 		iConveyerBelt.State beltState = iConveyerBelt.State.On;
 		enum OperationMode { Sort };
 		OperationMode mode = OperationMode.Sort;
-		
+		double box1Time;
+		double box2Time;
+		double box3Time;
+		double box4Time;
 		
 		/*
 		 * On Startup, a certain series of events will need to be executed.
@@ -46,38 +49,13 @@ component SortingApplication {
 		[mode.Sort && beltState.On] {
 			on comms.sortMode(): {}
 			on sensor.measuresBlack(): {
-				bool s = pushers.box1();
-				if (!s) {
-					/*
-					 * Slow down the belt... (if possible?)
-					 * Then try again after a timeout
-					 * If successful, then speed up again
-					 * If not, stop all
-					*/ 
-				}
+				pushers.enqueueBox1(box1Time);
 			}
 			on sensor.measuresWhite(): {
-				bool s = pushers.box2();
-				if (!s) {
-					/*
-					 * Slow down the belt... (if possible?)
-					 * Then try again after a timeout
-					 * If successful, then speed up again
-					 * If not, stop all
-					*/ 
-				}
+				pushers.enqueueBox2(box2Time);
 			}
 			on sensor.measuresError(): {
-				// Measures a wrong object, eject in wasteBox
-				bool s = pushers.wasteBox();
-				if (!s) {
-					/*
-					 * Slow down the belt... (if possible?)
-					 * Then try again after a timeout
-					 * If successful, then speed up again
-					 * If not, stop all
-					*/ 
-				}
+				pushers.enqueueBox4(box4Time);
 			}
 		}
 	}

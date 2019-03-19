@@ -1,5 +1,6 @@
 extern String $std::string$;
 extern int $int$;
+extern double $double$;
 
 interface iMotor
 {
@@ -170,25 +171,16 @@ interface CommunicationProtocol {
 }
 
 interface iPusherControl {
-	in bool box1();
-	in bool box2();
-	in bool box3();
-	in bool wasteBox();
-	in BoxState current();
-	enum BoxState {Box1, Box2, Box3, WasteBox};
+	in void enqueueBox1(double time);
+	in void enqueueBox2(double time);
+	in void enqueueBox3(double time);
+	in void enqueueBox4(double time);
 	
 	behaviour {
-		BoxState state = BoxState.WasteBox;
-		
-		on box1: { state = BoxState.Box1; reply(true); }
-		on box1: reply(false);
-		on box2: { state = BoxState.Box2; reply(true); }
-		on box2: reply(false);
-		on box3: { state = BoxState.Box3; reply(true); }
-		on box3: reply(false);
-		on wasteBox: { state = BoxState.WasteBox; reply(true); }
-		on wasteBox: reply(false);
-		on current: reply(state);
+		on enqueueBox1: {}
+		on enqueueBox2: {}
+		on enqueueBox3: {}
+		on enqueueBox4: {}
 	}
 }
 
@@ -202,22 +194,31 @@ interface iPusher {
 	
 	behaviour {
 		bool moving = false;
+		State movingState = State.Down;
 		
 		on isMoving: reply(moving); 
 		[moving] {
 			on inevitable: { stopped; moving = false; }
-			on up: illegal;
-			on down: illegal;
+			on up: {
+				[movingState.Up] {}
+				[otherwise] illegal;
+			}
+			on down: {
+				[movingState.Down] {}
+				[otherwise] illegal;	
+			}
 		} 
 		[!moving] {
-			on down: moving = true;
-			on up: moving = true;
+			on down: { moving = true; movingState = State.Down; }
+			on down: stopped;
+			on up: { moving = true; movingState = State.Up; }
+			on up: stopped;
 		}
 	}
 }
 
 interface iTimer {
-  in void createTimer();
+  in void createTimer(double time);
   in void cancelTimer();
   out void timeout();
 
