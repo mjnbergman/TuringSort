@@ -10,8 +10,12 @@ component System {
 		BlackWhiteSensor sensor;
 		//Display display;
 		PusherSystem pusherSystem;
+		SequenceBehaviour sequence;
+		Timer timer;
 		
 		port <=> app.comms;
+		sequence.port <=> app.sequence;
+		sequence.timer <=> timer.port;
 		belt.port <=> app.belt;
 		sensor.port <=> app.sensor;
 		//display.port <=> app.output;
@@ -25,35 +29,81 @@ component SortingApplication {
 	//requires iOutput output;
 	requires iConveyerBelt belt;
 	requires iPusherControl pushers;
+	requires iSequenceInterpreter sequence;
 	
 	behaviour {
 		iConveyerBelt.State beltState = iConveyerBelt.State.On;
-		enum OperationMode { Sort };
+		enum OperationMode { Sort, SequenceReading, Fibonacci, Emergency };
 		OperationMode mode = OperationMode.Sort;
 		double box1Time;
 		double box2Time;
 		double box3Time;
 		double box4Time;
 		
+		
 		/*
 		 * On Startup, a certain series of events will need to be executed.
 		 * This can be done in Dezyne, or, perhaps more fitting, in main.cc
 		 */
+		 
+		 [!mode.Emergency] {
+		 	on comms.emergency(): {
+		 		belt.turnOff();
+		 		beltState = iConveyerBelt.State.Off;
+		 		mode = OperationMode.Emergency;
+		 		sensor.turnOff();
+		 		sequence.cancelSequence();
+		 		pushers.cancelAll();
+		 	}
+		 }
+		 [mode.Emergency] {
+		 	on comms.emergency(): {
+		 		//Reboot in sorting mode
+				belt.turnOn();
+		 		beltState = iConveyerBelt.State.On;
+		 		mode = OperationMode.Sort;
+			 	sensor.turnOn();
+			 	sensor.calibrate();
+		 	}
+		 	/*on comms.startSequence(): { 
+		 		mode = OperationMode.SequenceReading; 
+		 		sequence.startSequence();
+		 		belt.turnOn();
+		 		beltState = iConveyerBelt.State.On;
+		 		sensor.turnOn();
+		 		sensor.calibrate();
+		 	}*/
+		 }
 		
-		/*
-		 * Perhaps a timer should be used here as well,
-		 * to only read values after a timeout.
-		 * This will be done to be sure that the pushers can be in the correct position,
-		 * when requested.
-		*/
-		[mode.Sort && beltState.On] {
-			on comms.sortMode(): {}
-			on sensor.measuresBlack(): {
-				pushers.enqueueBox1(box1Time);
+		[!mode.SequenceReading && !mode.Emergency] {
+			on comms.startSequence(): { mode = OperationMode.SequenceReading; sequence.startSequence(); }
+			on comms.takeItem(): comms.available();
+			[beltState.On] {
+				on sensor.measuresBlack(): {
+					//depends on instruction
+				}
+				on sensor.measuresWhite(): {
+					//depends on instruction
+				}
+				on sensor.measuresError(): {
+					pushers.enqueueBox4(box4Time);
+				}
 			}
-			on sensor.measuresWhite(): {
-				pushers.enqueueBox2(box2Time);
+		}
+		[mode.SequenceReading] {
+			on comms.startSequence(): illegal;
+			on comms.takeItem(): illegal;
+			on sequence.readSequence(): {
+				//Set mode to be different than SequenceReading
+				comms.finishedInstruction();
+				mode = OperationMode.Sort;
 			}
+			on sequence.timeout(): {
+				comms.finishedInstruction();
+				mode = OperationMode.Sort;
+			}
+			on sensor.measuresBlack(): sequence.appendBlack();
+			on sensor.measuresWhite(): sequence.appendWhite();
 			on sensor.measuresError(): {
 				pushers.enqueueBox4(box4Time);
 			}

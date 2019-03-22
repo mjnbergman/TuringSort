@@ -160,17 +160,81 @@ interface iConveyerBelt {
 }
 
 interface CommunicationProtocol {
-	in void sortMode();
-//	in void errorsResolved();
-//	in void startup();
-//	in void shutdown();
+	in void takeItem();
+	in void emergency();
+	in void startSequence();
+	out void sendEmergency();
+	out void finishedInstruction();
+	out void available();
 	
 	behaviour {
-		on sortMode: {}
+		enum Mode {SequenceReading, Available, Emergency, ProcessingItem};
+		Mode mode = Mode.Available;
+		Mode previous = Mode.Available;
+		
+		
+		[mode.Available] {
+			on takeItem: mode = Mode.ProcessingItem;
+			on takeItem: available;
+			on startSequence: mode = Mode.SequenceReading;
+		}
+		[mode.ProcessingItem] {
+			on startSequence: illegal;
+			on takeItem: illegal;
+			on inevitable: { available; mode = Mode.Available; } 
+		}
+		[mode.SequenceReading] {
+			on startSequence: illegal;
+			on takeItem: illegal;
+			on inevitable: { finishedInstruction; mode = Mode.Available; }
+		}
+		[mode.Emergency] {
+			on startSequence: illegal;
+			on takeItem: illegal;
+			on emergency: mode = Mode.Available;
+		}
+		[!mode.Emergency] {
+			on optional: { sendEmergency; mode = Mode.Emergency; }
+			on emergency: { mode = Mode.Emergency; }
+		}
+	}
+}
+
+interface iSequenceInterpreter {
+	in void startSequence();
+	in void appendWhite();
+	in void appendBlack();
+	out void readSequence();
+	out void timeout();
+	in void cancelSequence();
+	
+	enum Mode {Reading, Done};
+	
+	behaviour {
+		Mode mode = Mode.Done;
+		
+		
+		[mode.Done] {
+			on startSequence: { mode = Mode.Reading; }
+			on appendBlack: illegal;
+			on appendWhite: illegal;
+			on cancelSequence: {}
+		}
+		[mode.Reading] {
+			on startSequence: illegal;
+			on cancelSequence: { mode = Mode.Done; }
+			on appendWhite: {}
+			on appendWhite: { readSequence; mode = Mode.Done; }
+			on appendBlack: {}
+			on appendBlack: { readSequence; mode = Mode.Done; }
+			on inevitable: { timeout; mode = Mode.Done; }
+		}
+		
 	}
 }
 
 interface iPusherControl {
+	in void cancelAll();
 	in void enqueueBox1(double time);
 	in void enqueueBox2(double time);
 	in void enqueueBox3(double time);
@@ -181,6 +245,7 @@ interface iPusherControl {
 		on enqueueBox2: {}
 		on enqueueBox3: {}
 		on enqueueBox4: {}
+		on cancelAll: {}
 	}
 }
 
