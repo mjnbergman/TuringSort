@@ -10,42 +10,6 @@
 #include "System.hh"
 #include "wiringPi.h"
 
-using namespace std;
-
-class TimerHelper
-{
-    thread th;
-    bool running = false;
-    std::function<void(void)> timeoutFunc;
-
-public:
-    typedef std::chrono::milliseconds Interval;
-    typedef std::function<void(void)> Timeout;
-
-    TimerHelper(Timeout timeoutFunc) : timeoutFunc(timeoutFunc){};
-
-    void start(const Interval &interval)
-    {
-        running = true;
-
-        th = thread([=]()
-        {
-            while (running == true) {
-                this_thread::sleep_for(interval);
-                this->timeoutFunc();
-            }
-        });
-
-// [*]
-        th.join();
-    }
-
-    void stop()
-    {
-        running = false;
-    }
-};
-
 System* GLOBAL_SYSTEM;
 
 const double MOTOR_HOLD_DURATION = 200; // ms
@@ -77,18 +41,56 @@ int main(){
 			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
 
+    s.belt.control.motor.in.turnClockwise = [] {
+        turnMotor(0, false);
+    };
+
+    s.belt.control.motor.in.turnCounterClockwise = [] {
+        turnMotor(0, true);
+    };
+
+    s.belt.control.motor.in.off = [] {
+        stopMotor(0);
+    };
+
 	  s.pusherSystem.p1.motor.in.turnClockwise = [] {
 			  // Draai motor 1
+        turnMotor(1, false);
 	  };
 
 	  s.pusherSystem.p2.motor.in.turnClockwise = [] {
 			  // Draai motor 2
+        turnMotor(2, false);
 	  };
 
 	  s.pusherSystem.p3.motor.in.turnClockwise = [] {
 			  // Draai motor 3
+        turnMotor(3, false);
 	  };
 
+    s.pusherSystem.p1.motor.in.turnCounterClockwise = [] {
+        turnMotor(1, true);
+    };
+
+    s.pusherSystem.p2.motor.in.turnCounterClockwise = [] {
+        turnMotor(2, true);
+    };
+
+    s.pusherSystem.p3.motor.in.turnCounterClockwise = [] {
+        turnMotor(3, true);
+    };
+
+    s.pusherSystem.p1.motor.in.off = [] {
+        stopMotor(1);
+    };
+
+    s.pusherSystem.p2.motor.in.off = [] {
+        stopMotor(2);
+    };
+
+    s.pusherSystem.p3.motor.in.off = [] {
+        stopMotor(3);
+    };
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
@@ -143,4 +145,3 @@ int main(){
 
 	return 0;
 }
-
