@@ -89,45 +89,6 @@ int main(){
 			  // Draai motor 3
 	  };
 
-	  s.pusherSystem.p1.timer.in.createTimer = [] (double time) {
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		 // int ms = time;
-		 // std::chrono::duration<int, std::milli>;
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-		  t.start(ms);
-	  };
-	  s.pusherSystem.p2.timer.in.createTimer = [] (double time) {
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p2.timer.out.timeout);
-		 // int ms = time;
-		 // std::chrono::duration<int, std::milli>;
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-		  t.start(ms);
-	  };
-	  s.pusherSystem.p3.timer.in.createTimer = [] (double time) {
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-	      t.start(ms);
-	  };
-	  s.timer.port.in.createTimer = [] (double time){
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-	      t.start(ms);
-	  };
-
-	  s.rebootTimer.port.in.createTimer = [] (double time){
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-	      t.start(ms);
-	  };
-
-
-	//  s.belt.control.motor.in.turnClockwise
-
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
