@@ -155,10 +155,6 @@ int main(){
 
 	  };
 
-    s.sequence.port.in.appendBlack, appendWhite, cancelSequence, startSequence
-    //save sequence as a Sequence object
-    s.sequence.port.out.readSequence
-
 
 	  while(true){
 	  }
