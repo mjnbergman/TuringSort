@@ -59,7 +59,6 @@ int main(){
 
 
 	  int dataPin = 5, latchPin = 6, clockPin = 7;
-    byte motorBitsToSend = 0; //bits to send to the shift register for motor control
 
 
 	  System s(locator.set(runtime).set(illegal_handler));
@@ -156,42 +155,13 @@ int main(){
 
 	  };
 
+    s.sequence.port.in.appendBlack, appendWhite, cancelSequence, startSequence
+    //save sequence as a Sequence object
+    s.sequence.port.out.readSequence
+
 
 	  while(true){
 	  }
 
 	return 0;
-}
-
-//writes the motorBitsToSend to the shift register for motor control
-void registerWrite() {
-  //turn off the output so the pins don't light up while the bits are being shifted
-  digitalWrite(latchPin, LOW);
-
-  //shifts the previous bits out and writes bitsToSend (most significant bit first)
-  shiftOut(dataPin, clockPin, MSBFIRST, motorBitsToSend);
-
-  //turn on the output again
-  digitalWrite(latchPin, HIGH);
-}
-
-//turns a motor
-//requires the motor number 0-3
-//requires a boolean for turning direction turnLeft = false for clockwise
-void turnMotor(int motor, bool turnLeft) {
-  int bitToWrite = 0;
-  bitToWrite = motor * 2;
-  bitWrite(motorBitsToSend, bitToWrite, turnLeft);
-  bitWrite(motorBitsToSend, bitToWrite + 1, !turnLeft);
-  registerWrite();
-}
-
-//stops a motor
-//requires the motor number 0-3
-void stopMotor(int motor) {
-  int bitToWrite = 0;
-  bitToWrite = motor * 2;
-  bitWrite(bitsToSend, bitToWrite, false);
-  bitWrite(bitsToSend, bitToWrite + 1, false);
-  registerWrite();
 }
