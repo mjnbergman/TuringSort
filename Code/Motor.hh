@@ -106,6 +106,10 @@ public:
     	this->dataPin = dataPin;
     	this->latchPin = latchPin;
     	this->clockPin = clockPin;
+
+		pinMode(dataPin, OUTPUT);
+		pinMode(latchPin, OUTPUT);
+		pinMode(clockPin, OUTPUT);
     }
 };
 

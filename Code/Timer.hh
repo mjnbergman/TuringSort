@@ -28,7 +28,8 @@ public:
 	  int test = time;
 	  std::chrono::milliseconds ms(test);
 	  std::cout << "If it gets here Jari dies" << std::endl;
-	  t->start(ms);
+	  t->setDelay(test);
+	  t->start();
 	  std::cout << "Jari lives" << std::endl;
     };
     void port_cancelTimer (){
