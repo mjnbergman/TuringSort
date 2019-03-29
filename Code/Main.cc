@@ -48,6 +48,8 @@ public:
 
 System* GLOBAL_SYSTEM;
 
+const double MOTOR_HOLD_DURATION = 200; // ms
+
 int main(){
 
 	  dzn::locator locator;
@@ -148,11 +150,69 @@ int main(){
 		  std::chrono::milliseconds ms(test);
 	      t.start(ms);
 	  };
+	  s.timer.port.in.createTimer = [] (double time){
+		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
+		  int test = time;
+		  std::chrono::milliseconds ms(test);
+	      t.start(ms);
+	  };
+
+	  s.rebootTimer.port.in.createTimer = [] (double time){
+		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
+		  int test = time;
+		  std::chrono::milliseconds ms(test);
+	      t.start(ms);
+	  };
+
+
+	//  s.belt.control.motor.in.turnClockwise
 
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
-		  //s.pusherSystem.p1.timer
+		  auto upDownDelayLambda = [] (){
+			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.down();
+			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+		  };
+		  TimerHelper t1(upDownDelayLambda);
+		  int test = ms;
+		  std::chrono::milliseconds ms1(test);
+	      t1.start(ms1);
+	  };
 
+	  s.pusherSystem.port.in.enqueueBox2 = [] (double ms){
+		  auto upDownDelayLambda = [] (){
+			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.down();
+			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+		  };
+		  TimerHelper t1(upDownDelayLambda);
+		  int test = ms;
+		  std::chrono::milliseconds ms1(test);
+	      t1.start(ms1);
+	  };
+
+	  s.pusherSystem.port.in.enqueueBox3 = [] (double ms){
+		  auto upDownDelayLambda = [] (){
+			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.down();
+		  };
+		  TimerHelper t1(upDownDelayLambda);
+		  int test = ms;
+		  std::chrono::milliseconds ms1(test);
+	      t1.start(ms1);
+	  };
+	  s.pusherSystem.port.in.enqueueBox4 = [] (double ms){
+		  auto upDownDelayLambda = [] (){
+			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+		  };
+		  TimerHelper t1(upDownDelayLambda);
+		  int test = ms;
+		  std::chrono::milliseconds ms1(test);
+	      t1.start(ms1);
 	  };
 
 
