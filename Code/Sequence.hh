@@ -4,11 +4,11 @@
 #define CODE_SEQUENCE_HH_
 
 class Sequence {
-private:
+protected:
     SortingApplication::OperationMode _mode;
 
 public:
-    Sequence(SortingApplication::OperationMode &mode);
+    Sequence();
     SortingApplication::OperationMode getMode() const;
 };
 
@@ -20,7 +20,7 @@ public:
     SortSequence(int bw, int bb);
     int getBB() const;
     int getBW() const;
-}
+};
 
 class RequestSequence: public Sequence {
 private:
@@ -32,7 +32,7 @@ public:
     int getContainer() const;
     bool isWhite() const;
     int getAmount() const;
-}
+};
 
 class FibonacciSequence: public Sequence {
 private:
@@ -40,6 +40,6 @@ private:
 public:
     FibonacciSequence(int n);
     int getN() const;
-}
+};
 
 #endif /* CODE_SEQUENCE_HH_ */

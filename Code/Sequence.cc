@@ -5,8 +5,9 @@
  *      Author: Jari Martens
  */
 
-Sequence::Sequence(SortingApplication::OperationMode &mode)
-: _mode(mode)
+#include "Sequence.hh"
+
+Sequence::Sequence()
 {
 }
 
@@ -15,8 +16,9 @@ SortingApplication::OperationMode Sequence::getMode() const {
 }
 
 SortSequence::SortSequence(int bw, int bb)
-: Sequence(::SortingApplication::OperationMode::Sort), _bw(bw), _bb(bb)
+:_bw(bw), _bb(bb)
 {
+	this->_mode = ::SortingApplication::OperationMode::Sort;
 }
 
 int SortSequence::getBB() const {
@@ -28,8 +30,9 @@ int SortSequence::getBW() const {
 }
 
 RequestSequence::RequestSequence(int c, bool i, int a)
-: Sequence(::SortingApplication::OperationMode::TODO), _container(c), _isWhite(i), _amount(a)
+: _container(c), _isWhite(i), _amount(a)
 {
+	this->_mode = ::SortingApplication::OperationMode::Request;
 }
 
 int RequestSequence::getContainer() const {
@@ -44,11 +47,11 @@ int RequestSequence::getAmount() const {
     return _amount;
 }
 
-FibonacciSequence::FibonacciSequence(int n)
+/*FibonacciSequence::FibonacciSequence(int n)
 : Sequence(::SortingApplication::OperationMode::Fibonacci), _n(n)
 {
 }
 
 int FibonacciSequence::getN() const {
     return _n;
-}
+}*/

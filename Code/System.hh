@@ -78,6 +78,59 @@ namespace skel {
 
 /***********************************  FOREIGN  **********************************/
 /***********************************  FOREIGN  **********************************/
+#ifndef SKEL_TIMER_HH
+#define SKEL_TIMER_HH
+
+#include <dzn/locator.hh>
+#include <dzn/runtime.hh>
+
+#include "Interfaces.hh"
+
+
+
+namespace skel {
+  struct Timer
+  {
+    dzn::meta dzn_meta;
+    dzn::runtime& dzn_rt;
+    dzn::locator const& dzn_locator;
+    ::iTimer port;
+
+
+    Timer(const dzn::locator& dzn_locator)
+    : dzn_meta{"","Timer",0,0,{},{},{[this]{port.check_bindings();}}}
+    , dzn_rt(dzn_locator.get<dzn::runtime>())
+    , dzn_locator(dzn_locator)
+
+    , port({{"port",this,&dzn_meta},{"",0,0}})
+
+
+    {
+      port.in.createTimer = [&](double time){return dzn::call_in(this,[=]{ return port_createTimer(time);}, this->port.meta, "createTimer");};
+      port.in.cancelTimer = [&](){return dzn::call_in(this,[=]{ return port_cancelTimer();}, this->port.meta, "cancelTimer");};
+
+
+    }
+    virtual ~ Timer() {}
+    virtual std::ostream& stream_members(std::ostream& os) const { return os; }
+    void check_bindings() const;
+    void dump_tree(std::ostream& os) const;
+    void set_state(std::map<std::string,std::map<std::string,std::string> >){}
+    void set_state(std::map<std::string,std::string>_alist){}
+    friend std::ostream& operator << (std::ostream& os, const Timer& m)  {
+      return m.stream_members(os);
+    }
+    private:
+    virtual void port_createTimer (double time) = 0;
+    virtual void port_cancelTimer () = 0;
+
+  };
+}
+
+#endif // TIMER_HH
+
+/***********************************  FOREIGN  **********************************/
+/***********************************  FOREIGN  **********************************/
 #ifndef SKEL_DISPLAY_HH
 #define SKEL_DISPLAY_HH
 
@@ -241,50 +294,80 @@ namespace skel {
 
 /***********************************  FOREIGN  **********************************/
 /********************************** COMPONENT *********************************/
-#ifndef TEST_HH
-#define TEST_HH
+#ifndef SORTINGAPPLICATION_HH
+#define SORTINGAPPLICATION_HH
 
 #include "Interfaces.hh"
 #include "Interfaces.hh"
 #include "Interfaces.hh"
 #include "Interfaces.hh"
+#include "Interfaces.hh"
+#include "Interfaces.hh"
 
 
 
-struct Test
+struct SortingApplication
 {
   dzn::meta dzn_meta;
   dzn::runtime& dzn_rt;
   dzn::locator const& dzn_locator;
+#ifndef ENUM_SortingApplication_OperationMode
+#define ENUM_SortingApplication_OperationMode 1
 
-  ::iControl::State::type state;
+
+  struct OperationMode
+  {
+    enum type
+    {
+      Sort,SequenceReading,Fibonacci,Rebooting,Request
+    };
+  };
 
 
-  std::function<void ()> out_port;
+#endif // ENUM_SortingApplication_OperationMode
 
-  ::iControl port;
+  ::iConveyerBelt::State::type beltState;
+  ::SortingApplication::OperationMode::type mode;
+  double box1Time;
+  double box2Time;
+  double box3Time;
+  double box4Time;
+  double rebootTime;
 
-  ::iSensor reflectionSensor;
-  ::iOutput output;
+
+  std::function<void ()> out_comms;
+
+  ::CommunicationProtocol comms;
+
+  ::iBlackWhiteSensor sensor;
   ::iConveyerBelt belt;
+  ::iPusherControl pushers;
+  ::iSequenceInterpreter sequence;
+  ::iTimer rebootTimer;
 
 
-  Test(const dzn::locator&);
+  SortingApplication(const dzn::locator&);
   void check_bindings() const;
   void dump_tree(std::ostream& os) const;
-  friend std::ostream& operator << (std::ostream& os, const Test& m)  {
+  friend std::ostream& operator << (std::ostream& os, const SortingApplication& m)  {
     (void)m;
-    return os << "[" << m.state <<"]" ;
+    return os << "[" << m.beltState <<", " << m.mode <<", " << m.box1Time <<", " << m.box2Time <<", " << m.box3Time <<", " << m.box4Time <<", " << m.rebootTime <<"]" ;
   }
   private:
-  void port_turnOn();
-  void port_turnOff();
-  void reflectionSensor_measures(int value);
-  void belt_error();
+  void comms_takeItem();
+  void comms_startSequence();
+  void comms_reboot();
+  void sensor_measuresBlack();
+  void sensor_measuresWhite();
+  void sensor_measuresError();
+  void sequence_readSequence();
+  void sequence_timeout();
+  void rebootTimer_timeout();
 
+  void setSystemOperating (bool operational);
 };
 
-#endif // TEST_HH
+#endif // SORTINGAPPLICATION_HH
 
 /********************************** COMPONENT *********************************/
 /***********************************  SYSTEM  ***********************************/
@@ -296,7 +379,10 @@ struct Test
 
 #include "Components.hh"
 #include "Components.hh"
-#include "Display.hh"
+#include "Components.hh"
+#include "Components.hh"
+#include "Timer.hh"
+#include "Timer.hh"
 
 
 
@@ -307,12 +393,15 @@ struct System
   dzn::locator const& dzn_locator;
 
 
-  ::Test test;
+  ::SortingApplication app;
   ::ConveyerBelt belt;
-  ::ReflectionSensor sensor;
-  ::Display display;
+  ::BlackWhiteSensor sensor;
+  ::PusherSystem pusherSystem;
+  ::SequenceBehaviour sequence;
+  ::Timer timer;
+  ::Timer rebootTimer;
 
-  ::iControl& port;
+  ::CommunicationProtocol& port;
 
 
   System(const dzn::locator&);

@@ -1,39 +1,23 @@
 /*
  * Motor.hh
  *
- *  Created on: 22 Feb 2019
+ *  Created on: 22 Mar 2019
  *      Author: 20174570
  */
 
-#include "System.hh"
-#include "wiringPi.h"
+#ifndef TURINGSORT_CODE_MOTOR_HH_
+#define TURINGSORT_CODE_MOTOR_HH_
 
-#ifndef CODE_MOTOR_HH_
-#define CODE_MOTOR_HH_
 
-struct Motor : public skel::Motor{
+struct Motor : skel::Motor{
 
 public:
-
-	Motor(const dzn::locator& dzn_locator, int pin) : skel::Motor(dzn_locator), motorPin(pin){
-//		pinMode(motorPin, OUTPUT);
-		std::cout << "motorPin initialized as output at pin 5!" << std::endl;
-	};
-    ~ Motor() {}
-    void port_turnOn () {
-    	std::cout << "Motor turned on!";
-  //  	digitalWrite(motorPin, HIGH);
-    };
-    void port_turnOff () {
-    	std::cout << "Motor turned off!";
-    //	digitalWrite(motorPin, LOW);
-    };
-
-private:
-	int motorPin;
+    Motor(const dzn::locator& dzn_locator) : skel::Motor(dzn_locator){};
+    void port_turnClockwise (){}
+    void port_turnOff (){}
+    void port_turnCounterClockwise (){}
 };
 
 
 
-
-#endif /* CODE_MOTOR_HH_ */
+#endif /* TURINGSORT_CODE_MOTOR_HH_ */
