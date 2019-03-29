@@ -10,42 +10,6 @@
 #include "System.hh"
 #include "wiringPi.h"
 
-using namespace std;
-
-class TimerHelper
-{
-    thread th;
-    bool running = false;
-    std::function<void(void)> timeoutFunc;
-
-public:
-    typedef std::chrono::milliseconds Interval;
-    typedef std::function<void(void)> Timeout;
-
-    TimerHelper(Timeout timeoutFunc) : timeoutFunc(timeoutFunc){};
-
-    void start(const Interval &interval)
-    {
-        running = true;
-
-        th = thread([=]()
-        {
-            while (running == true) {
-                this_thread::sleep_for(interval);
-                this->timeoutFunc();
-            }
-        });
-
-// [*]
-        th.join();
-    }
-
-    void stop()
-    {
-        running = false;
-    }
-};
-
 System* GLOBAL_SYSTEM;
 
 const double MOTOR_HOLD_DURATION = 200; // ms
@@ -127,46 +91,6 @@ int main(){
     s.pusherSystem.p3.motor.in.off = [] {
         stopMotor(3);
     };
-
-	  s.pusherSystem.p1.timer.in.createTimer = [] (double time) {
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		 // int ms = time;
-		 // std::chrono::duration<int, std::milli>;
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-		  t.start(ms);
-	  };
-	  s.pusherSystem.p2.timer.in.createTimer = [] (double time) {
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p2.timer.out.timeout);
-		 // int ms = time;
-		 // std::chrono::duration<int, std::milli>;
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-		  t.start(ms);
-	  };
-	  s.pusherSystem.p3.timer.in.createTimer = [] (double time) {
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-	      t.start(ms);
-	  };
-	  s.timer.port.in.createTimer = [] (double time){
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-	      t.start(ms);
-	  };
-
-	  s.rebootTimer.port.in.createTimer = [] (double time){
-		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
-		  int test = time;
-		  std::chrono::milliseconds ms(test);
-	      t.start(ms);
-	  };
-
-
-	//  s.belt.control.motor.in.turnClockwise
-
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
