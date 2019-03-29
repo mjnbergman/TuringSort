@@ -40,6 +40,7 @@ private:
 public:
     FibonacciSequence(int n);
     int getN() const;
+    static int getFibonacci(int n);
 };
 
 #endif /* CODE_SEQUENCE_HH_ */
