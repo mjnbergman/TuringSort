@@ -1,39 +1,98 @@
 /*
  * Motor.hh
  *
- *  Created on: 22 Feb 2019
+ *  Created on: 22 Mar 2019
  *      Author: 20174570
  */
 
-#include "System.hh"
-#include "wiringPi.h"
+#ifndef TURINGSORT_CODE_MOTOR_HH_
+#define TURINGSORT_CODE_MOTOR_HH_
 
-#ifndef CODE_MOTOR_HH_
-#define CODE_MOTOR_HH_
+#include <wiringPi.h>
+#include <wiringShift.h>
 
-struct Motor : public skel::Motor{
+typedef uint8_t byte;
+
+
+struct Motor : skel::Motor{
+private:
+
+  int motorPin;
+
+  int dataPin;
+  int latchPin;
+  int clockPin;
 
 public:
 
-	Motor(const dzn::locator& dzn_locator, int pin) : skel::Motor(dzn_locator), motorPin(pin){
-//		pinMode(motorPin, OUTPUT);
-		std::cout << "motorPin initialized as output at pin 5!" << std::endl;
-	};
-    ~ Motor() {}
-    void port_turnOn () {
-    	std::cout << "Motor turned on!";
-  //  	digitalWrite(motorPin, HIGH);
-    };
-    void port_turnOff () {
-    	std::cout << "Motor turned off!";
-    //	digitalWrite(motorPin, LOW);
-    };
+    static byte motorBitsToSend; //bits to send to the shift register for motor control
 
-private:
-	int motorPin;
+    Motor(const dzn::locator& dzn_locator) : skel::Motor(dzn_locator){
+    };
+    void port_turnClockwise (){
+    	turnMotor(false);
+    }
+    void port_turnOff (){
+    	stopMotor();
+    }
+    void port_turnCounterClockwise (){
+    	turnMotor(true);
+    }
+
+    //writes the motorBitsToSend to the shift register for motor control
+    void registerWrite() {
+      //turn off the output so the pins don't light up while the bits are being shifted
+      digitalWrite(latchPin, LOW);
+
+      //shifts the previous bits out and writes bitsToSend (most significant bit first)
+      shiftOut(dataPin, clockPin, MSBFIRST, Motor::motorBitsToSend);
+
+      //turn on the output again
+      digitalWrite(latchPin, HIGH);
+    }
+
+    //turns a motor
+    //requires the motor number 0-3
+    //requires a boolean for turning direction turnLeft = false for clockwise
+    void turnMotor(bool turnLeft) {
+      int bitToWrite = 0;
+      bitToWrite = this->motorPin * 2;
+  //    bitWrite(motorBitsToSend, bitToWrite, turnLeft);
+
+      Motor::motorBitsToSend |= (1 << bitToWrite);
+
+ //     bitWrite(motorBitsToSend, bitToWrite + 1, !turnLeft);
+
+      Motor::motorBitsToSend &= ~(1 << (bitToWrite + 1));
+
+      registerWrite();
+    }
+
+    //stops a motor
+    //requires the motor number 0-3
+    void stopMotor() {
+      int bitToWrite = 0;
+      bitToWrite = this->motorPin * 2;
+  //    bitWrite(bitsToSend, bitToWrite, false);
+
+      Motor::motorBitsToSend &= ~(1 << bitToWrite);
+
+  //    bitWrite(bitsToSend, bitToWrite + 1, false);
+
+      Motor::motorBitsToSend &= ~(1 << (bitToWrite + 1));
+      registerWrite();
+    }
+
+    void setMotorNumber(int pin){
+    	this->motorPin = pin;
+    }
+    void setPins(int dataPin, int latchPin, int clockPin){
+    	this->dataPin = dataPin;
+    	this->latchPin = latchPin;
+    	this->clockPin = clockPin;
+    }
 };
 
 
 
-
-#endif /* CODE_MOTOR_HH_ */
+#endif /* TURINGSORT_CODE_MOTOR_HH_ */

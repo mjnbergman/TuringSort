@@ -1,25 +1,34 @@
 extern String $std::string$;
 extern int $int$;
+extern double $double$;
 
 interface iMotor
 {
-	in void turnOn();
+	in void turnClockwise();
 	in void turnOff();
-	out void error();
+	in void turnCounterClockwise();
 	
+	enum State {Clock, Off, CounterClock};
 	behaviour {
-		enum State {On, Off};
+		
 		State state = State.Off;
 		
-		[state.On] {
-			on turnOn: illegal;
+		[state.Clock] {
+			on turnClockwise: illegal;
+			on turnCounterClockwise: illegal;
 			on turnOff: state = State.Off;
-			on inevitable: {error; state = State.Off;}
 		}
 		
 		[state.Off] {
-			on turnOn: state = State.On;
+			on turnClockwise: state = State.Clock;
 			on turnOff: {}
+			on turnCounterClockwise: state = State.CounterClock;
+		}
+		
+		[state.CounterClock] {
+			on turnClockwise: illegal;
+			on turnCounterClockwise: illegal;
+			on turnOff: state = State.Off;
 		}
 	}
 }
@@ -51,7 +60,7 @@ interface iSensor {
 	in void turnOn();
 	in void turnOff();
 	in void calibrate();
-	out void measures();
+	out void measures(in int value);
 	
 	behaviour {
 		enum State {On, Off};
@@ -64,9 +73,40 @@ interface iSensor {
 		}
 		
 		[state.On] {
-			on turnOn: illegal;
+			on turnOn: {}
 			on turnOff: state = State.Off;
 			on calibrate: {}
+			on inevitable: measures;
+		}	
+	}
+	
+}
+
+interface iBlackWhiteSensor {
+	in void turnOn();
+	in void turnOff();
+	in void calibrate();
+	out void measuresBlack();
+	out void measuresWhite();
+	out void measuresError();
+	
+	behaviour {
+		enum State {On, Off};
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On; 
+			on turnOff: {}
+			on calibrate: illegal;
+		}
+		
+		[state.On] {
+			on turnOn: {}
+			on turnOff: state = State.Off;
+			on calibrate: {}
+			on inevitable: measuresBlack;
+			on inevitable: measuresWhite;
+			on inevitable: measuresError;
 		}	
 	}
 	
@@ -85,8 +125,177 @@ interface iControl {
 			on turnOff: {}
 		}
 		[state.On] {
-			on turnOn: illegal;
+			on turnOn: {}
 			on turnOff: state = State.Off;
 		}
 	}
+}
+
+interface iConveyerBelt {
+	enum State {On, Off};
+	enum Direction {Clockwise, CounterClockwise};
+	in void turnOn();
+	in void turnOff();
+	in void setClockwise();
+	in void setCounterClockwise();
+	
+	behaviour {
+		State state = State.Off;
+		
+		[state.Off] {
+			on turnOn: state = State.On;
+			on turnOff: {}
+			on setClockwise: {}
+			on setCounterClockwise: {}
+		}
+		[state.On] {
+			on turnOn: {}
+			on turnOff: state = State.Off;
+			on setClockwise: illegal;
+			on setCounterClockwise: illegal;
+		}
+		
+	}
+	
+}
+
+interface CommunicationProtocol {
+	in void takeItem();
+	in void startSequence();
+	in void reboot();
+	out void sendEmergency();
+	out void sequenceReceived();
+	out void available();
+	
+	behaviour {
+		enum Mode {SequenceReading, Available, Rebooting };
+		Mode mode = Mode.Available;
+		Mode previous = Mode.Available;
+		
+		void do_reboot(){
+			mode = Mode.Rebooting;
+			//do more
+		}
+		
+		
+		//on optional: { sendEmergency; do_reboot();}
+		on reboot: { do_reboot(); }
+		[mode.Available] {
+			on takeItem: {}
+			on startSequence: mode = Mode.SequenceReading;
+		}
+		[mode.SequenceReading] {
+			on startSequence: illegal;
+			on takeItem: illegal;
+			on inevitable: { sequenceReceived; available; mode = Mode.Available; }
+		}
+		[mode.Rebooting] {
+			on startSequence: illegal;
+			on takeItem: illegal;
+			on inevitable: { available; mode = Mode.Available; }
+		}
+	}
+}
+
+interface iSequenceInterpreter {
+	in void startSequence();
+	in void appendWhite();
+	in void appendBlack();
+	out void readSequence();
+	out void timeout();
+	in void cancelSequence();
+	
+	enum Mode {Reading, Done};
+	
+	behaviour {
+		Mode mode = Mode.Done;
+		
+		
+		[mode.Done] {
+			on startSequence: { mode = Mode.Reading; }
+			on appendBlack: illegal;
+			on appendWhite: illegal;
+			on cancelSequence: {}
+		}
+		[mode.Reading] {
+			on startSequence: illegal;
+			on cancelSequence: { mode = Mode.Done; }
+			on appendWhite: {}
+			on appendWhite: { readSequence; mode = Mode.Done; }
+			on appendBlack: {}
+			on appendBlack: { readSequence; mode = Mode.Done; }
+			on inevitable: { timeout; mode = Mode.Done; }
+		}
+		
+	}
+}
+
+interface iPusherControl {
+	in void cancelAll();
+	in void enqueueBox1(double time);
+	in void enqueueBox2(double time);
+	in void enqueueBox3(double time);
+	in void enqueueBox4(double time);
+	
+	behaviour {
+		on enqueueBox1: {}
+		on enqueueBox2: {}
+		on enqueueBox3: {}
+		on enqueueBox4: {}
+		on cancelAll: {}
+	}
+}
+
+interface iPusher {
+	in void down();
+	in void up();
+	in bool isMoving();
+	out void stopped();
+	
+	enum State {Down, Up};
+	
+	behaviour {
+		bool moving = false;
+		State movingState = State.Down;
+		
+		on isMoving: reply(moving); 
+		[moving] {
+			on inevitable: { stopped; moving = false; }
+			on up: {
+				[movingState.Up] {}
+				[otherwise] illegal;
+			}
+			on down: {
+				[movingState.Down] {}
+				[otherwise] illegal;	
+			}
+		} 
+		[!moving] {
+			on down: { moving = true; movingState = State.Down; }
+			on down: stopped;
+			on up: { moving = true; movingState = State.Up; }
+			on up: stopped;
+		}
+	}
+}
+
+interface iTimer {
+  in void createTimer(double time);
+  in void cancelTimer();
+  out void timeout();
+
+  behaviour {
+    enum State {Idle, Busy};
+    State state = State.Idle;
+
+    [state.Idle] {
+      on createTimer: {state = State.Busy;}
+      on cancelTimer: illegal;
+    }
+    [state.Busy] {
+      on createTimer: illegal;
+      on cancelTimer: {state = State.Idle;}
+      on inevitable: { timeout; state = State.Idle; }
+    }
+  }
 }

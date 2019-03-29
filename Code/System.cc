@@ -17,26 +17,33 @@
 
 
 
-Test::Test(const dzn::locator& dzn_locator)
-: dzn_meta{"","Test",0,0,{& motor.meta,& reflectionSensor.meta,& output.meta},{},{[this]{port.check_bindings();},[this]{motor.check_bindings();},[this]{reflectionSensor.check_bindings();},[this]{output.check_bindings();}}}
+SortingApplication::SortingApplication(const dzn::locator& dzn_locator)
+: dzn_meta{"","SortingApplication",0,0,{& sensor.meta,& belt.meta,& pushers.meta,& sequence.meta,& rebootTimer.meta},{},{[this]{comms.check_bindings();},[this]{sensor.check_bindings();},[this]{belt.check_bindings();},[this]{pushers.check_bindings();},[this]{sequence.check_bindings();},[this]{rebootTimer.check_bindings();}}}
 , dzn_rt(dzn_locator.get<dzn::runtime>())
 , dzn_locator(dzn_locator)
-, state(::iControl::State::Off)
+, beltState(::iConveyerBelt::State::On), mode(::SortingApplication::OperationMode::Sort), box1Time(), box2Time(), box3Time(), box4Time(), rebootTime()
 
-, port({{"port",this,&dzn_meta},{"",0,0}})
+, comms({{"comms",this,&dzn_meta},{"",0,0}})
 
-, motor({{"",0,0},{"motor",this,&dzn_meta}})
-, reflectionSensor({{"",0,0},{"reflectionSensor",this,&dzn_meta}})
-, output({{"",0,0},{"output",this,&dzn_meta}})
+, sensor({{"",0,0},{"sensor",this,&dzn_meta}})
+, belt({{"",0,0},{"belt",this,&dzn_meta}})
+, pushers({{"",0,0},{"pushers",this,&dzn_meta}})
+, sequence({{"",0,0},{"sequence",this,&dzn_meta}})
+, rebootTimer({{"",0,0},{"rebootTimer",this,&dzn_meta}})
 
 
 {
   dzn_rt.performs_flush(this) = true;
 
-  port.in.turnOn = [&](){return dzn::call_in(this,[=]{ return port_turnOn();}, this->port.meta, "turnOn");};
-  port.in.turnOff = [&](){return dzn::call_in(this,[=]{ return port_turnOff();}, this->port.meta, "turnOff");};
-  motor.out.error = [&](){return dzn::call_out(this,[=]{ return motor_error();}, this->motor.meta, "error");};
-  reflectionSensor.out.measures = [&](){return dzn::call_out(this,[=]{ return reflectionSensor_measures();}, this->reflectionSensor.meta, "measures");};
+  comms.in.takeItem = [&](){return dzn::call_in(this,[=]{ return comms_takeItem();}, this->comms.meta, "takeItem");};
+  comms.in.startSequence = [&](){return dzn::call_in(this,[=]{ return comms_startSequence();}, this->comms.meta, "startSequence");};
+  comms.in.reboot = [&](){return dzn::call_in(this,[=]{ return comms_reboot();}, this->comms.meta, "reboot");};
+  sensor.out.measuresBlack = [&](){return dzn::call_out(this,[=]{ return sensor_measuresBlack();}, this->sensor.meta, "measuresBlack");};
+  sensor.out.measuresWhite = [&](){return dzn::call_out(this,[=]{ return sensor_measuresWhite();}, this->sensor.meta, "measuresWhite");};
+  sensor.out.measuresError = [&](){return dzn::call_out(this,[=]{ return sensor_measuresError();}, this->sensor.meta, "measuresError");};
+  sequence.out.readSequence = [&](){return dzn::call_out(this,[=]{ return sequence_readSequence();}, this->sequence.meta, "readSequence");};
+  sequence.out.timeout = [&](){return dzn::call_out(this,[=]{ return sequence_timeout();}, this->sequence.meta, "timeout");};
+  rebootTimer.out.timeout = [&](){return dzn::call_out(this,[=]{ return rebootTimer_timeout();}, this->rebootTimer.meta, "timeout");};
 
 
 
@@ -44,94 +51,211 @@ Test::Test(const dzn::locator& dzn_locator)
 
 }
 
-void Test::port_turnOn()
+void SortingApplication::comms_takeItem()
 {
-  if ((state == ::iControl::State::On && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
-  else if ((state == ::iControl::State::Off && true)) 
+  if (((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && true)) 
   {
-    state = ::iControl::State::On;
+    setSystemOperating(true);
   }
-  else if ((!((state == ::iControl::State::Off && true)) && (!((state == ::iControl::State::On && true)) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && (!(((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && true)) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
   else dzn_locator.get<dzn::illegal_handler>().illegal();
 
   return;
 
 }
-void Test::port_turnOff()
+void SortingApplication::comms_startSequence()
 {
-  if ((state == ::iControl::State::On && true)) 
+  if (((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && true)) 
   {
-    state = ::iControl::State::Off;
-    this->motor.in.turnOff();
-    this->reflectionSensor.in.turnOff();
-    this->output.in.turnOff();
+    mode = ::SortingApplication::OperationMode::SequenceReading;
+    this->sequence.in.startSequence();
+    setSystemOperating(true);
   }
-  else if ((state == ::iControl::State::Off && true)) ;
-  else if ((!((state == ::iControl::State::Off && true)) && (!((state == ::iControl::State::On && true)) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && (!(((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && true)) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
   else dzn_locator.get<dzn::illegal_handler>().illegal();
 
   return;
 
 }
-void Test::motor_error()
+void SortingApplication::comms_reboot()
 {
-  if ((state == ::iControl::State::Off && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
-  else if ((!((state == ::iControl::State::Off && true)) && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
+  if ((!(mode == ::SortingApplication::OperationMode::Rebooting) && true)) 
+  {
+    this->belt.in.turnOn();
+    beltState = ::iConveyerBelt::State::On;
+    mode = ::SortingApplication::OperationMode::Rebooting;
+    this->sensor.in.turnOff();
+    this->sequence.in.cancelSequence();
+    this->pushers.in.cancelAll();
+    this->rebootTimer.in.createTimer(rebootTime);
+  }
+  else if ((mode == ::SortingApplication::OperationMode::Rebooting && true)) 
+  {
+    this->rebootTimer.in.cancelTimer();
+    this->rebootTimer.in.createTimer(rebootTime);
+  }
+  else if ((!((mode == ::SortingApplication::OperationMode::Rebooting && true)) && (!((!(mode == ::SortingApplication::OperationMode::Rebooting) && true)) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
   else dzn_locator.get<dzn::illegal_handler>().illegal();
 
   return;
 
 }
-void Test::reflectionSensor_measures()
+void SortingApplication::sensor_measuresBlack()
 {
-  if (true) dzn_locator.get<dzn::illegal_handler>().illegal();
+  if (((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && (beltState == ::iConveyerBelt::State::On && true))) ;
+  else if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) this->sequence.in.appendBlack();
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && (!(((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && (beltState == ::iConveyerBelt::State::On && true))) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else dzn_locator.get<dzn::illegal_handler>().illegal();
+
+  return;
+
+}
+void SortingApplication::sensor_measuresWhite()
+{
+  if (((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && (beltState == ::iConveyerBelt::State::On && true))) ;
+  else if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) this->sequence.in.appendWhite();
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && (!(((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && (beltState == ::iConveyerBelt::State::On && true))) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else dzn_locator.get<dzn::illegal_handler>().illegal();
+
+  return;
+
+}
+void SortingApplication::sensor_measuresError()
+{
+  if (((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && (beltState == ::iConveyerBelt::State::On && true))) 
+  {
+    this->pushers.in.enqueueBox4(box4Time);
+  }
+  else if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) 
+  {
+    this->pushers.in.enqueueBox4(box4Time);
+  }
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && (!(((!(mode == ::SortingApplication::OperationMode::SequenceReading) && !(mode == ::SortingApplication::OperationMode::Rebooting)) && (beltState == ::iConveyerBelt::State::On && true))) && true))) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else dzn_locator.get<dzn::illegal_handler>().illegal();
+
+  return;
+
+}
+void SortingApplication::sequence_readSequence()
+{
+  if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) 
+  {
+    setSystemOperating(false);
+    this->comms.out.sequenceReceived();
+    this->comms.out.available();
+    mode = ::SortingApplication::OperationMode::Sort;
+  }
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else dzn_locator.get<dzn::illegal_handler>().illegal();
+
+  return;
+
+}
+void SortingApplication::sequence_timeout()
+{
+  if ((mode == ::SortingApplication::OperationMode::SequenceReading && true)) 
+  {
+    setSystemOperating(false);
+    this->comms.out.sequenceReceived();
+    this->comms.out.available();
+    mode = ::SortingApplication::OperationMode::Sort;
+  }
+  else if ((!((mode == ::SortingApplication::OperationMode::SequenceReading && true)) && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else dzn_locator.get<dzn::illegal_handler>().illegal();
+
+  return;
+
+}
+void SortingApplication::rebootTimer_timeout()
+{
+  if ((mode == ::SortingApplication::OperationMode::Rebooting && true)) 
+  {
+    this->belt.in.turnOff();
+    beltState = ::iConveyerBelt::State::Off;
+    mode = ::SortingApplication::OperationMode::Sort;
+    this->comms.out.available();
+  }
+  else if ((!((mode == ::SortingApplication::OperationMode::Rebooting && true)) && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
   else dzn_locator.get<dzn::illegal_handler>().illegal();
 
   return;
 
 }
 
+void SortingApplication::setSystemOperating (bool operational) 
+{
+  {
+    if (operational) 
+    {
+      this->belt.in.turnOn();
+      beltState = ::iConveyerBelt::State::On;
+      this->sensor.in.turnOn();
+      this->sensor.in.calibrate();
+    }
+    else 
+    {
+      this->belt.in.turnOff();
+      beltState = ::iConveyerBelt::State::Off;
+      this->sensor.in.turnOff();
+    }
+  }
+  return ;
+}
 
-void Test::check_bindings() const
+void SortingApplication::check_bindings() const
 {
   dzn::check_bindings(&dzn_meta);
 }
-void Test::dump_tree(std::ostream& os) const
+void SortingApplication::dump_tree(std::ostream& os) const
 {
   dzn::dump_tree(os, &dzn_meta);
 }
 
 //SYSTEM
 
-System::System(const dzn::locator& dzn_locator, int motorPin)
-: dzn_meta{"","System",0,0,{},{& motor.dzn_meta,& test.dzn_meta,& sensor.dzn_meta,& display.dzn_meta},{[this]{port.check_bindings();}}}
+System::System(const dzn::locator& dzn_locator)
+: dzn_meta{"","System",0,0,{},{& app.dzn_meta,& belt.dzn_meta,& sensor.dzn_meta,& pusherSystem.dzn_meta,& sequence.dzn_meta,& timer.dzn_meta,& rebootTimer.dzn_meta},{[this]{port.check_bindings();}}}
 , dzn_rt(dzn_locator.get<dzn::runtime>())
 , dzn_locator(dzn_locator)
 
 
-, motor(dzn_locator, motorPin)
-, test(dzn_locator)
+, app(dzn_locator)
+, belt(dzn_locator)
 , sensor(dzn_locator)
-, display(dzn_locator)
+, pusherSystem(dzn_locator)
+, sequence(dzn_locator)
+, timer(dzn_locator)
+, rebootTimer(dzn_locator)
 
-, port(test.port)
+, port(app.comms)
 
 {
 
 
-  motor.dzn_meta.parent = &dzn_meta;
-  motor.dzn_meta.name = "motor";
-  test.dzn_meta.parent = &dzn_meta;
-  test.dzn_meta.name = "test";
+  app.dzn_meta.parent = &dzn_meta;
+  app.dzn_meta.name = "app";
+  belt.dzn_meta.parent = &dzn_meta;
+  belt.dzn_meta.name = "belt";
   sensor.dzn_meta.parent = &dzn_meta;
   sensor.dzn_meta.name = "sensor";
-  display.dzn_meta.parent = &dzn_meta;
-  display.dzn_meta.name = "display";
+  pusherSystem.dzn_meta.parent = &dzn_meta;
+  pusherSystem.dzn_meta.name = "pusherSystem";
+  sequence.dzn_meta.parent = &dzn_meta;
+  sequence.dzn_meta.name = "sequence";
+  timer.dzn_meta.parent = &dzn_meta;
+  timer.dzn_meta.name = "timer";
+  rebootTimer.dzn_meta.parent = &dzn_meta;
+  rebootTimer.dzn_meta.name = "rebootTimer";
 
 
-  connect(motor.port, test.motor);
-  connect(sensor.port, test.reflectionSensor);
-  connect(display.port, test.output);
+  connect(rebootTimer.port, app.rebootTimer);
+  connect(sequence.port, app.sequence);
+  connect(timer.port, sequence.timer);
+  connect(belt.port, app.belt);
+  connect(sensor.port, app.sensor);
+  connect(pusherSystem.port, app.pushers);
 
   dzn::rank(port.meta.provides.meta, 0);
 

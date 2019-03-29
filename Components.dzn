@@ -4,6 +4,52 @@ component Motor {
 	provides iMotor port;
 }
 
+component Pusher {
+	provides iPusher port;
+	requires iMotor motor;
+	requires iTimer timer;
+	
+	behaviour {
+		iMotor.State motorState = iMotor.State.Off;
+		iPusher.State state = iPusher.State.Up;
+		double time;
+		//If motorState is not Off, pusher-state state is not reached yet.
+		
+		[state.Up] {
+			[motorState.Off] {
+				on port.down(): { motor.turnClockwise(); motorState = iMotor.State.CounterClock; state = iPusher.State.Down; timer.createTimer(time); }
+				on port.up(): { port.stopped(); }
+				on port.isMoving(): reply(false);
+			}
+			[motorState.Clock] {
+				on port.down(): illegal;
+				on port.up(): {}
+				on port.isMoving(): reply(true);
+				on timer.timeout(): { port.stopped(); motorState = iMotor.State.Off; motor.turnOff(); }
+			}
+		}
+		
+		[state.Down] {
+			[motorState.Off] {
+				on port.up(): { motor.turnCounterClockwise(); motorState = iMotor.State.Clock; state = iPusher.State.Up; timer.createTimer(time); }
+				on port.down(): { port.stopped(); }
+				on port.isMoving(): reply(false);
+			}
+			[motorState.CounterClock] {
+				on port.up(): illegal;
+				on port.down(): {}
+				on port.isMoving(): reply(true);
+				on timer.timeout(): { port.stopped(); motorState = iMotor.State.Off; motor.turnOff(); }
+			}
+		}
+		
+	}
+}
+
+component Timer {
+	provides iTimer port;
+}
+
 component Display {
 	provides iOutput port;
 }
@@ -16,8 +62,8 @@ component LightSensor {
 	provides iSensor port;
 }
 
-component ReflectionControl {
-	provides iSensor port;
+component BlackWhiteSensorControl {
+	provides iBlackWhiteSensor port;
 	requires iControl light;
 	requires iSensor sensor;
 	
@@ -35,20 +81,151 @@ component ReflectionControl {
 			on port.turnOn(): illegal;
 			on port.turnOff(): {state = State.Off; light.turnOff(); sensor.turnOff();}
 			on port.calibrate(): sensor.calibrate();
+			on sensor.measures(value): {}
 		}	
 	}
 }
 
-component ReflectionSensor {
-	provides iSensor port;
+component BlackWhiteSensor {
+	provides iBlackWhiteSensor port;
 	
 	system {
-		ReflectionControl control;
+		BlackWhiteSensorControl control;
 		LightSensor sensor;
 		Light light;
 		
 		control.port <=> port; 
 		sensor.port <=> control.sensor;
 		light.port <=> control.light;	
+	}
+}
+
+component ConveyerBeltControl {
+	provides iConveyerBelt port;
+	requires iMotor motor;
+	
+	behaviour {
+		iConveyerBelt.Direction direction = iConveyerBelt.Direction.Clockwise;
+		iConveyerBelt.State state = iConveyerBelt.State.Off;
+		
+		[state.Off] {
+			on port.setClockwise(): direction = iConveyerBelt.Direction.Clockwise;
+			on port.setCounterClockwise(): direction = iConveyerBelt.Direction.CounterClockwise;
+			on port.turnOn(): [direction.Clockwise] {state = iConveyerBelt.State.On; motor.turnClockwise();}
+			on port.turnOn(): [direction.CounterClockwise] {state = iConveyerBelt.State.On; motor.turnCounterClockwise();}
+			on port.turnOff(): {} 
+		}
+		
+		[state.On] {
+			on port.setClockwise(): illegal;
+			on port.setCounterClockwise(): illegal;
+			on port.turnOn(): illegal;
+			on port.turnOff(): {motor.turnOff(); state = iConveyerBelt.State.Off;}
+		}
+		
+	}
+}
+
+component ConveyerBelt {
+	provides iConveyerBelt port;
+	
+	system {
+		ConveyerBeltControl control;
+		Motor motor;
+		
+		control.port <=> port;
+		motor.port <=> control.motor;
+	}
+}
+
+component PusherControl {
+	provides iPusherControl port;
+	requires iPusher push1;
+	requires iPusher push2;
+	requires iPusher push3;
+	
+	behaviour {
+		on port.enqueueBox1(time): {}
+		on port.enqueueBox2(time): {}
+		on port.enqueueBox3(time): {}
+		on port.enqueueBox4(time): {}
+		on port.cancelAll(): {}
+		on push1.stopped(): {}
+		on push2.stopped(): {}
+		on push3.stopped(): {}
+	}
+}
+
+component PusherSystem {
+	provides iPusherControl port;
+	
+	system {
+		PusherControl control;
+		Pusher p1;
+		Timer t1;
+		Motor m1;
+		Pusher p2;
+		Timer t2;
+		Motor m2;
+		Pusher p3;
+		Timer t3;
+		Motor m3;
+		
+		port <=> control.port;
+		control.push1 <=> p1.port;
+		p1.timer <=> t1.port;
+		p1.motor <=> m1.port;
+		control.push2 <=> p2.port;
+		p2.timer <=> t2.port;
+		p2.motor <=> m2.port;
+		control.push3 <=> p3.port;
+		p3.timer <=> t3.port;
+		p3.motor <=> m3.port;
+	}
+}
+
+component SequenceBehaviour {
+	provides iSequenceInterpreter port;
+	requires iTimer timer;
+	
+	behaviour {
+		iSequenceInterpreter.Mode mode = iSequenceInterpreter.Mode.Done;
+		subint SeqLength {0..8};
+		SeqLength SEQ_LENGTH = 8;
+		SeqLength current = 0;
+		int time;
+		
+		[mode.Done] {
+			on port.startSequence(): { mode = iSequenceInterpreter.Mode.Reading; current = 0; timer.createTimer(time); }
+			on port.cancelSequence(): {}
+		}
+		[mode.Reading] {
+			on port.cancelSequence(): { timer.cancelTimer(); mode = iSequenceInterpreter.Mode.Done; }
+			on port.appendBlack(): {
+				//Append black to array
+				//Increase length
+				current = current + 1;
+				if (current == 8) {
+					port.readSequence();
+					mode = iSequenceInterpreter.Mode.Done;
+					timer.cancelTimer();
+				}
+				
+			}
+			on port.appendWhite(): {
+				//Append white to array
+				//Increase length
+				current = current + 1;
+				if (current == 8) {
+					port.readSequence();
+					mode = iSequenceInterpreter.Mode.Done;
+					timer.cancelTimer();
+				}
+			}
+			on timer.timeout(): {
+				port.timeout();
+				mode = iSequenceInterpreter.Mode.Done;
+			}
+		}
 	}
 }

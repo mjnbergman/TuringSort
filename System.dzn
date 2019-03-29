@@ -2,43 +2,135 @@ import Interfaces.dzn;
 import Components.dzn;
 
 component System {
-	provides iControl port;
+	provides CommunicationProtocol port;
 	
 	system {
-		Motor motor;
-		Test test;
-		ReflectionSensor sensor;
-		Display display;
+		SortingApplication app;
+		ConveyerBelt belt;
+		BlackWhiteSensor sensor;
+		//Display display;
+		PusherSystem pusherSystem;
+		SequenceBehaviour sequence;
+		Timer timer;
+		Timer rebootTimer;
 		
-		port <=> test.port;
-		motor.port <=> test.motor;
-		sensor.port <=> test.reflectionSensor;
-		display.port <=> test.output; 
+		port <=> app.comms;
+		rebootTimer.port <=> app.rebootTimer;
+		sequence.port <=> app.sequence;
+		sequence.timer <=> timer.port;
+		belt.port <=> app.belt;
+		sensor.port <=> app.sensor;
+		//display.port <=> app.output;
+		pusherSystem.port <=> app.pushers; 
 	}
 }
 
-component Test {
-	provides iControl port;
-	requires iMotor motor;
-	requires iSensor reflectionSensor;
-	requires iOutput output;
+component SortingApplication {
+	provides CommunicationProtocol comms;
+	requires iBlackWhiteSensor sensor;
+	//requires iOutput output;
+	requires iConveyerBelt belt;
+	requires iPusherControl pushers;
+	requires iSequenceInterpreter sequence;
+	requires iTimer rebootTimer;
 	
 	behaviour {
-		iControl.State state = iControl.State.Off;
+		iConveyerBelt.State beltState = iConveyerBelt.State.On;
+		enum OperationMode { Sort, SequenceReading, Fibonacci, Rebooting, Request };
+		OperationMode mode = OperationMode.Sort;
+		//Time it takes to go from sensor to Box1
+		double box1Time;
+		//Time it takes to go from sensor to Box2
+		double box2Time;
+		//Time it takes to go from sensor to Box3
+		double box3Time;
+		//Time it takes to go from sensor to Box4
+		double box4Time;
+		//Time it takes to clear the belt
+		double rebootTime;
 		
-		[state.On] {
-			on port.turnOn(): illegal;
-			on port.turnOff(): { 
-				state = iControl.State.Off; 
-				motor.turnOff();
-				reflectionSensor.turnOff(); 
-				output.turnOff();
+		
+		/*
+		 * On Startup, a certain series of events will need to be executed.
+		 * This can be done in Dezyne, or, perhaps more fitting, in main.cc
+		 */
+		 void setSystemOperating(bool operational) {
+		 	if (operational) {
+		 		belt.turnOn(); 
+		 		beltState = iConveyerBelt.State.On;
+		 		sensor.turnOn(); 
+		 		sensor.calibrate(); 
+		 	} else {
+		 		belt.turnOff();
+		 		beltState = iConveyerBelt.State.Off;
+		 		sensor.turnOff();
+		 	}
+		 	
+		 }
+		 
+		 [!mode.Rebooting] {
+		 	on comms.reboot(): {
+		 		// Clear the belt
+		 		belt.turnOn();
+		 		beltState = iConveyerBelt.State.On;
+		 		mode = OperationMode.Rebooting;
+		 		sensor.turnOff();
+		 		sequence.cancelSequence();
+		 		pushers.cancelAll();
+		 		
+		 		rebootTimer.createTimer(rebootTime);
+		 	}
+		 }
+		 [mode.Rebooting] {
+		 	on comms.reboot(): {
+		 		//Reset timer
+		 		rebootTimer.cancelTimer();
+		 		rebootTimer.createTimer(rebootTime);
+		 	}
+		 	on rebootTimer.timeout(): {
+		 		belt.turnOff();
+		 		beltState = iConveyerBelt.State.Off;
+		 		mode = OperationMode.Sort;
+		 		comms.available();
+		 	}
+		 }
+		
+		[!mode.SequenceReading && !mode.Rebooting] {
+			on comms.startSequence(): { mode = OperationMode.SequenceReading; sequence.startSequence(); setSystemOperating(true); }
+			on comms.takeItem(): { setSystemOperating(true); }
+			[beltState.On] {
+				on sensor.measuresBlack(): {
+					//depends on instruction
+				}
+				on sensor.measuresWhite(): {
+					//depends on instruction
+				}
+				on sensor.measuresError(): {
+					pushers.enqueueBox4(box4Time);
+				}
 			}
 		}
-		[state.Off] {
-			on port.turnOn(): { state = iControl.State.On; }
-			on port.turnOff(): {}
-			on motor.error(): illegal;
+		[mode.SequenceReading] {
+			on comms.startSequence(): illegal;
+			on comms.takeItem(): illegal;
+			on sequence.readSequence(): {
+				//Set mode to be different than SequenceReading
+				setSystemOperating(false);
+				comms.sequenceReceived();
+				comms.available();
+				mode = OperationMode.Sort;
+			}
+			on sequence.timeout(): {
+				setSystemOperating(false);
+				comms.sequenceReceived();
+				comms.available();
+				mode = OperationMode.Sort;
+			}
+			on sensor.measuresBlack(): sequence.appendBlack();
+			on sensor.measuresWhite(): sequence.appendWhite();
+			on sensor.measuresError(): {
+				pushers.enqueueBox4(box4Time);
+			}
 		}
 	}
 }
