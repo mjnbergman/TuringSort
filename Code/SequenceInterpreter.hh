@@ -10,13 +10,8 @@ public:
 
 private:
   int counter;
-  bool[8] array;
+  bool array[8];
   Sequence seq;
 
-  int operation;
-  int blackContainer;
-  int whiteContainer;
-  int container;
-  int amount;
-  bool white;
-}
+  void readSequence(bool sequence[]);
+};
