@@ -18,6 +18,7 @@ public:
 	void sendEmergency();
 	void sequenceReceived();
 	void available();
+	void cleanup();
 private:
 	const char *host;
 	int port;
