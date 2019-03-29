@@ -12,8 +12,10 @@ component System {
 		PusherSystem pusherSystem;
 		SequenceBehaviour sequence;
 		Timer timer;
+		Timer rebootTimer;
 		
 		port <=> app.comms;
+		rebootTimer.port <=> app.rebootTimer;
 		sequence.port <=> app.sequence;
 		sequence.timer <=> timer.port;
 		belt.port <=> app.belt;
@@ -30,54 +32,72 @@ component SortingApplication {
 	requires iConveyerBelt belt;
 	requires iPusherControl pushers;
 	requires iSequenceInterpreter sequence;
+	requires iTimer rebootTimer;
 	
 	behaviour {
 		iConveyerBelt.State beltState = iConveyerBelt.State.On;
-		enum OperationMode { Sort, SequenceReading, Fibonacci, Emergency };
+		enum OperationMode { Sort, SequenceReading, Fibonacci, Rebooting, Request };
 		OperationMode mode = OperationMode.Sort;
+		//Time it takes to go from sensor to Box1
 		double box1Time;
+		//Time it takes to go from sensor to Box2
 		double box2Time;
+		//Time it takes to go from sensor to Box3
 		double box3Time;
+		//Time it takes to go from sensor to Box4
 		double box4Time;
+		//Time it takes to clear the belt
+		double rebootTime;
 		
 		
 		/*
 		 * On Startup, a certain series of events will need to be executed.
 		 * This can be done in Dezyne, or, perhaps more fitting, in main.cc
 		 */
-		 
-		 [!mode.Emergency] {
-		 	on comms.emergency(): {
+		 void setSystemOperating(bool operational) {
+		 	if (operational) {
+		 		belt.turnOn(); 
+		 		beltState = iConveyerBelt.State.On;
+		 		sensor.turnOn(); 
+		 		sensor.calibrate(); 
+		 	} else {
 		 		belt.turnOff();
 		 		beltState = iConveyerBelt.State.Off;
-		 		mode = OperationMode.Emergency;
+		 		sensor.turnOff();
+		 	}
+		 	
+		 }
+		 
+		 [!mode.Rebooting] {
+		 	on comms.reboot(): {
+		 		// Clear the belt
+		 		belt.turnOn();
+		 		beltState = iConveyerBelt.State.On;
+		 		mode = OperationMode.Rebooting;
 		 		sensor.turnOff();
 		 		sequence.cancelSequence();
 		 		pushers.cancelAll();
+		 		
+		 		rebootTimer.createTimer(rebootTime);
 		 	}
 		 }
-		 [mode.Emergency] {
-		 	on comms.emergency(): {
-		 		//Reboot in sorting mode
-				belt.turnOn();
-		 		beltState = iConveyerBelt.State.On;
-		 		mode = OperationMode.Sort;
-			 	sensor.turnOn();
-			 	sensor.calibrate();
+		 [mode.Rebooting] {
+		 	on comms.reboot(): {
+		 		//Reset timer
+		 		rebootTimer.cancelTimer();
+		 		rebootTimer.createTimer(rebootTime);
 		 	}
-		 	/*on comms.startSequence(): { 
-		 		mode = OperationMode.SequenceReading; 
-		 		sequence.startSequence();
-		 		belt.turnOn();
-		 		beltState = iConveyerBelt.State.On;
-		 		sensor.turnOn();
-		 		sensor.calibrate();
-		 	}*/
+		 	on rebootTimer.timeout(): {
+		 		belt.turnOff();
+		 		beltState = iConveyerBelt.State.Off;
+		 		mode = OperationMode.Sort;
+		 		comms.available();
+		 	}
 		 }
 		
-		[!mode.SequenceReading && !mode.Emergency] {
-			on comms.startSequence(): { mode = OperationMode.SequenceReading; sequence.startSequence(); }
-			on comms.takeItem(): comms.available();
+		[!mode.SequenceReading && !mode.Rebooting] {
+			on comms.startSequence(): { mode = OperationMode.SequenceReading; sequence.startSequence(); setSystemOperating(true); }
+			on comms.takeItem(): { setSystemOperating(true); }
 			[beltState.On] {
 				on sensor.measuresBlack(): {
 					//depends on instruction
@@ -95,11 +115,15 @@ component SortingApplication {
 			on comms.takeItem(): illegal;
 			on sequence.readSequence(): {
 				//Set mode to be different than SequenceReading
-				comms.finishedInstruction();
+				setSystemOperating(false);
+				comms.sequenceReceived();
+				comms.available();
 				mode = OperationMode.Sort;
 			}
 			on sequence.timeout(): {
-				comms.finishedInstruction();
+				setSystemOperating(false);
+				comms.sequenceReceived();
+				comms.available();
 				mode = OperationMode.Sort;
 			}
 			on sensor.measuresBlack(): sequence.appendBlack();

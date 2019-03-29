@@ -73,7 +73,7 @@ interface iSensor {
 		}
 		
 		[state.On] {
-			on turnOn: illegal;
+			on turnOn: {}
 			on turnOff: state = State.Off;
 			on calibrate: {}
 			on inevitable: measures;
@@ -101,7 +101,7 @@ interface iBlackWhiteSensor {
 		}
 		
 		[state.On] {
-			on turnOn: illegal;
+			on turnOn: {}
 			on turnOff: state = State.Off;
 			on calibrate: {}
 			on inevitable: measuresBlack;
@@ -125,7 +125,7 @@ interface iControl {
 			on turnOff: {}
 		}
 		[state.On] {
-			on turnOn: illegal;
+			on turnOn: {}
 			on turnOff: state = State.Off;
 		}
 	}
@@ -149,7 +149,7 @@ interface iConveyerBelt {
 			on setCounterClockwise: {}
 		}
 		[state.On] {
-			on turnOn: illegal;
+			on turnOn: {}
 			on turnOff: state = State.Off;
 			on setClockwise: illegal;
 			on setCounterClockwise: illegal;
@@ -161,41 +161,38 @@ interface iConveyerBelt {
 
 interface CommunicationProtocol {
 	in void takeItem();
-	in void emergency();
 	in void startSequence();
+	in void reboot();
 	out void sendEmergency();
-	out void finishedInstruction();
+	out void sequenceReceived();
 	out void available();
 	
 	behaviour {
-		enum Mode {SequenceReading, Available, Emergency, ProcessingItem};
+		enum Mode {SequenceReading, Available, Rebooting };
 		Mode mode = Mode.Available;
 		Mode previous = Mode.Available;
 		
-		
-		[mode.Available] {
-			on takeItem: mode = Mode.ProcessingItem;
-			on takeItem: available;
-			on startSequence: mode = Mode.SequenceReading;
+		void do_reboot(){
+			mode = Mode.Rebooting;
+			//do more
 		}
-		[mode.ProcessingItem] {
-			on startSequence: illegal;
-			on takeItem: illegal;
-			on inevitable: { available; mode = Mode.Available; } 
+		
+		
+		//on optional: { sendEmergency; do_reboot();}
+		on reboot: { do_reboot(); }
+		[mode.Available] {
+			on takeItem: {}
+			on startSequence: mode = Mode.SequenceReading;
 		}
 		[mode.SequenceReading] {
 			on startSequence: illegal;
 			on takeItem: illegal;
-			on inevitable: { finishedInstruction; mode = Mode.Available; }
+			on inevitable: { sequenceReceived; available; mode = Mode.Available; }
 		}
-		[mode.Emergency] {
+		[mode.Rebooting] {
 			on startSequence: illegal;
 			on takeItem: illegal;
-			on emergency: mode = Mode.Available;
-		}
-		[!mode.Emergency] {
-			on optional: { sendEmergency; mode = Mode.Emergency; }
-			on emergency: { mode = Mode.Emergency; }
+			on inevitable: { available; mode = Mode.Available; }
 		}
 	}
 }
