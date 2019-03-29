@@ -46,29 +46,29 @@ public:
 
 
 
-
 int main(){
 
 	  dzn::locator locator;
 	  dzn::runtime runtime;
 	  dzn::illegal_handler illegal_handler;
 
-	  wiringPiSetup();
+//	  wiringPiSetup();
 
 
 
 	  int dataPin = 5, latchPin = 6, clockPin = 7;
+
 
 	  System s(locator.set(runtime).set(illegal_handler));
 
 	  s.sensor.sensor.port_turnOn();
 
 
-	  auto timerLambda = [] (double ms) {
+	  auto timerLambda = [] (System s, double ms) {
 		  	  auto executionLamba = [] {
 
 		  	  };
-			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
+		//	  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
 
 	  s.pusherSystem.p1.motor.in.turnClockwise = [] {
@@ -83,19 +83,19 @@ int main(){
 			  // Draai motor 3
 	  };
 
-	  s.pusherSystem.p1.timer.in.createTimer = [] {
-			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
+	  s.pusherSystem.p1.timer.in.createTimer = [] (double time) {
+			//  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
-	  s.pusherSystem.p2.timer.in.createTimer = [] {
-			  TimerHelper t(s.pusherSystem.p2.timer.out.timeout);
+	  s.pusherSystem.p2.timer.in.createTimer = [] (double time) {
+			  //TimerHelper t(s.pusherSystem.p2.timer.out.timeout);
 	  };
-	  s.pusherSystem.p3.timer.in.createTimer = [] {
-			  TimerHelper t(s.pusherSystem.p3.timer.out.timeout);
+	  s.pusherSystem.p3.timer.in.createTimer = [] (double time) {
+			  //TimerHelper t(s.pusherSystem.p3.timer.out.timeout);
 	  };
 
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
-		  s.pusherSystem.p1.timer
+		  //s.pusherSystem.p1.timer
 
 	  };
 

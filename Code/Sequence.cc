@@ -11,14 +11,14 @@ Sequence::Sequence()
 {
 }
 
-SortingApplication::OperationMode Sequence::getMode() const {
+SortingApplication::OperationMode::type Sequence::getMode() const {
     return _mode;
 }
 
 SortSequence::SortSequence(int bw, int bb)
 :_bw(bw), _bb(bb)
 {
-	this->_mode = ::SortingApplication::OperationMode::Sort;
+	this->_mode = ::SortingApplication::OperationMode::type::Sort;
 }
 
 int SortSequence::getBB() const {

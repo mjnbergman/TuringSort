@@ -5,11 +5,11 @@
 
 class Sequence {
 protected:
-    SortingApplication::OperationMode _mode;
+    SortingApplication::OperationMode::type _mode;
 
 public:
     Sequence();
-    SortingApplication::OperationMode getMode() const;
+    SortingApplication::OperationMode::type getMode() const;
 };
 
 class SortSequence: public Sequence {
