@@ -5,7 +5,7 @@
 
 class MosquittoHandler {
 public:
-	MosquittoHandler();
+	MosquittoHandler(const char *host, int port, int keepAlive);
 	void takeItem();
 	void startSequence();
 	void reboot();
@@ -17,6 +17,6 @@ private:
 	int port;
 	int keepAlive;
 	struct mosquitto mosq*;
-	void connectCallback();
-	void messageCallback();
+	void connectCallback(struct mosquitto *mosq, void *userdata, int result);
+	void messageCallback(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message);
 }
