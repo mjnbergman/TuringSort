@@ -1,10 +1,6 @@
 	#include "MosquittoHandler.hh"
 
-MosquittoHandler::MosquittoHandler(const char *host, int port, int keepAlive) {
-	this.host = host;
-	this.port = port;
-	this.keepAlive = keepAlive;
-
+MosquittoHandler::MosquittoHandler() {
 	mosquitto_lib_init();
 	this.mosq = mosquitto_new(NULL, true, NULL);
 
@@ -13,8 +9,15 @@ MosquittoHandler::MosquittoHandler(const char *host, int port, int keepAlive) {
 	}
 	mosquitto_connect_callback_set(mosq, MosquittoHandler::connectCallback);
 	mosquitto_message_callback_set(mosq, MosquittoHandler::messageCallback);
+}
 
-	if (mosquitto_connect(mosq, this.host, this.port, this.keepAlive)) {
+void MosquittoHandler::cleanup() {
+	mosquitto_destroy(mosq);
+	mosquitto_lib_cleanup();
+}
+
+void MosquittoHandler::connect(const char *host, int port, int keepAlive) {
+	if (mosquitto_connect(mosq, host, port, keepAlive)) {
 		fprintf(stderr, "MQTT connection failed.\n");
 	}
 }
@@ -30,11 +33,6 @@ void MosquittoHandler::sequenceReceived() {
 }
 void MosquittoHandler::available() {
 	MosquittoHandler::sendMessage("available");
-}
-
-void MosquittoHandler::cleanup() {
-	mosquitto_destroy(mosq);
-	mosquitto_lib_cleanup();
 }
 
 void MosquittoHandler::connectCallback(struct mosquitto *mosq, void *userdata, int result) {
