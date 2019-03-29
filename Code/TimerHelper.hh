@@ -31,14 +31,14 @@ public:
 
         th = thread([=]()
         {
-            while (running == true) {
+            if (running == true) {
                 this_thread::sleep_for(interval);
                 this->timeoutFunc();
             }
         });
 
 // [*]
-        th.join();
+        th.detach();
     }
 
     void stop()

@@ -12,7 +12,7 @@
 
 System* GLOBAL_SYSTEM;
 
-const int dataPin = 5, latchPin = 6, clockPin = 7;
+const int dataPin = 12, latchPin = 13, clockPin = 14;
 
 const double MOTOR_HOLD_DURATION = 200; // ms
 
@@ -24,16 +24,11 @@ int main(){
 
 	  wiringPiSetup();
 
-
-
-	  int dataPin = 5, latchPin = 6, clockPin = 7;
-
-
 	  System s(locator.set(runtime).set(illegal_handler));
 
 	  GLOBAL_SYSTEM = &s;
 
-	  s.sensor.sensor.port_turnOn();
+//	  s.sensor.sensor.port_turnOn();
 
 
 	  auto timerLambda = [] (System s, double ms) {
@@ -45,6 +40,8 @@ int main(){
 
     s.belt.motor.setMotorNumber(0);
     s.belt.motor.setPins(dataPin, latchPin, clockPin);
+
+
 
     s.pusherSystem.m1.setMotorNumber(1);
     s.pusherSystem.m1.setPins(dataPin, latchPin, clockPin);
@@ -102,9 +99,24 @@ int main(){
 	      t1.start(ms1);
 	  };
 
+	  std::cout << "Before belt en ik leef";
 
+	  //s.belt.port.in.turnOn();
+	  s.belt.motor.turnMotor(true);
+
+	  std::cout << " \n after belt en ik leef";
+	  delay(20000);
 	  while(true){
 		  std::cout << " Test loop! ";
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox1(200);
+		  std::cout << "Enqueue 1" << std::endl;
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox2(200);
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox3(200);
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox4(200);
 		  delay(500);
 	  }
 
