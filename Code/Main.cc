@@ -16,13 +16,15 @@ class TimerHelper
 {
     thread th;
     bool running = false;
+    std::function<void(void)> timeoutFunc;
 
 public:
     typedef std::chrono::milliseconds Interval;
     typedef std::function<void(void)> Timeout;
 
-    void start(const Interval &interval,
-               const Timeout &timeout)
+    TimerHelper(Timeout timeoutFunc) : timeoutFunc(timeoutFunc){};
+
+    void start(const Interval &interval)
     {
         running = true;
 
@@ -30,7 +32,7 @@ public:
         {
             while (running == true) {
                 this_thread::sleep_for(interval);
-                timeout();
+                this->timeoutFunc();
             }
         });
 
@@ -44,7 +46,7 @@ public:
     }
 };
 
-
+System* GLOBAL_SYSTEM;
 
 int main(){
 
@@ -62,6 +64,8 @@ int main(){
 
 	  System s(locator.set(runtime).set(illegal_handler));
 
+	  GLOBAL_SYSTEM = &s;
+
 	  s.sensor.sensor.port_turnOn();
 
 
@@ -69,7 +73,7 @@ int main(){
 		  	  auto executionLamba = [] {
 
 		  	  };
-		//	  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
+			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
 
     s.belt.control.motor.in.turnClockwise = [] {
@@ -124,13 +128,26 @@ int main(){
     };
 
 	  s.pusherSystem.p1.timer.in.createTimer = [] (double time) {
-			//  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
+		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
+		 // int ms = time;
+		 // std::chrono::duration<int, std::milli>;
+		  int test = time;
+		  std::chrono::milliseconds ms(test);
+		  t.start(ms);
 	  };
 	  s.pusherSystem.p2.timer.in.createTimer = [] (double time) {
-			  //TimerHelper t(s.pusherSystem.p2.timer.out.timeout);
+		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p2.timer.out.timeout);
+		 // int ms = time;
+		 // std::chrono::duration<int, std::milli>;
+		  int test = time;
+		  std::chrono::milliseconds ms(test);
+		  t.start(ms);
 	  };
 	  s.pusherSystem.p3.timer.in.createTimer = [] (double time) {
-			  //TimerHelper t(s.pusherSystem.p3.timer.out.timeout);
+		  TimerHelper t(GLOBAL_SYSTEM->pusherSystem.p1.timer.out.timeout);
+		  int test = time;
+		  std::chrono::milliseconds ms(test);
+	      t.start(ms);
 	  };
 
 
