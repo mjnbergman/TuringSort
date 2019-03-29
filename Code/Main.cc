@@ -8,9 +8,11 @@
 #include <iostream>
 #include <thread>
 #include "System.hh"
-#include "wiringPi.h"
+#include <wiringPi.h>
 
 System* GLOBAL_SYSTEM;
+
+const int dataPin = 5, latchPin = 6, clockPin = 7;
 
 const double MOTOR_HOLD_DURATION = 200; // ms
 
@@ -20,7 +22,7 @@ int main(){
 	  dzn::runtime runtime;
 	  dzn::illegal_handler illegal_handler;
 
-//	  wiringPiSetup();
+	  wiringPiSetup();
 
 
 
@@ -41,56 +43,17 @@ int main(){
 			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
 
-    s.belt.control.motor.in.turnClockwise = [] {
-        turnMotor(0, false);
-    };
+    s.belt.motor.setMotorNumber(0);
+    s.belt.motor.setPins(dataPin, latchPin, clockPin);
 
-    s.belt.control.motor.in.turnCounterClockwise = [] {
-        turnMotor(0, true);
-    };
+    s.pusherSystem.m1.setMotorNumber(1);
+    s.pusherSystem.m1.setPins(dataPin, latchPin, clockPin);
 
-    s.belt.control.motor.in.off = [] {
-        stopMotor(0);
-    };
+    s.pusherSystem.m2.setMotorNumber(2);
+    s.pusherSystem.m2.setPins(dataPin, latchPin, clockPin);
 
-	  s.pusherSystem.p1.motor.in.turnClockwise = [] {
-			  // Draai motor 1
-        turnMotor(1, false);
-	  };
-
-	  s.pusherSystem.p2.motor.in.turnClockwise = [] {
-			  // Draai motor 2
-        turnMotor(2, false);
-	  };
-
-	  s.pusherSystem.p3.motor.in.turnClockwise = [] {
-			  // Draai motor 3
-        turnMotor(3, false);
-	  };
-
-    s.pusherSystem.p1.motor.in.turnCounterClockwise = [] {
-        turnMotor(1, true);
-    };
-
-    s.pusherSystem.p2.motor.in.turnCounterClockwise = [] {
-        turnMotor(2, true);
-    };
-
-    s.pusherSystem.p3.motor.in.turnCounterClockwise = [] {
-        turnMotor(3, true);
-    };
-
-    s.pusherSystem.p1.motor.in.off = [] {
-        stopMotor(1);
-    };
-
-    s.pusherSystem.p2.motor.in.off = [] {
-        stopMotor(2);
-    };
-
-    s.pusherSystem.p3.motor.in.off = [] {
-        stopMotor(3);
-    };
+    s.pusherSystem.m3.setMotorNumber(3);
+    s.pusherSystem.m3.setPins(dataPin, latchPin, clockPin);
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
@@ -141,6 +104,8 @@ int main(){
 
 
 	  while(true){
+		  std::cout << " Test loop! ";
+		  delay(500);
 	  }
 
 	return 0;
