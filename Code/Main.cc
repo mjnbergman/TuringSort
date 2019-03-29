@@ -8,11 +8,19 @@
 #include <iostream>
 #include <thread>
 #include "System.hh"
+#include "SequenceInterpreter.hh"
 #include "wiringPi.h"
 
 System* GLOBAL_SYSTEM;
+SequenceInterpreter *INTERPRETER;
+int REQUEST_DONE;
 
 const double MOTOR_HOLD_DURATION = 200; // ms
+const double BUCKET_DURATION_ZERO = 1000;
+const double BUCKET_DURATION_ONE = 1000;
+const double BUCKET_DURATION_TWO = 1000;
+const double BUCKET_DURATION_THREE = 1000;
+const int WASTE_BUCKET = 3;
 
 int main(){
 
@@ -30,6 +38,7 @@ int main(){
 	  System s(locator.set(runtime).set(illegal_handler));
 
 	  GLOBAL_SYSTEM = &s;
+	  INTERPRETER = new SequenceInterpreter();
 
 	  s.sensor.sensor.port_turnOn();
 
@@ -139,9 +148,76 @@ int main(){
 	      t1.start(ms1);
 	  };
 
+	  s.app.sensor.out.measuresBlack = [] {
+		  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+			  Sequence *seq = INTERPRETER->getSequence();
+			  SortingApplication::OperationMode::type type = seq->getMode();
+			  if (type == SortingApplication::OperationMode::type::Sort) {
+				  SortSequence *sort = dynamic_cast<SortSequence *>(&seq);
+				  int bucket = sort->getBB();
+				  enqueue(bucket);
+			  } else if (type == SortingApplication::OperationMode::type::Request) {
+				  RequestSequence *req = dynamic_cast<RequestSequence *>(&seq);
+				  if (req->isWhite()) {
+					  enqueue(WASTE_BUCKET);
+				  } else {
+					  int bucket = req->getContainer();
+					  enqueue(bucket);
+					  int a = req->getAmount();
+					  REQUEST_DONE++;
+					  if (a == REQUEST_DONE) {
+						  INTERPRETER->cancel();
+						  REQUEST_DONE = 0;
+					  }
+				  }
+			  }
+		  }
+	  };
+
+	  s.app.sensor.out.measuresWhite = [] {
+			  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+	  			  Sequence *seq = INTERPRETER->getSequence();
+	  			  SortingApplication::OperationMode::type type = seq->getMode();
+	  			  if (type == SortingApplication::OperationMode::type::Sort) {
+	  				  SortSequence *sort = dynamic_cast<SortSequence *>(&seq);
+	  				  int bucket = sort->getBW();
+	  				  enqueue(bucket);
+	  			  } else if (type == SortingApplication::OperationMode::type::Request) {
+					  RequestSequence *req = dynamic_cast<RequestSequence *>(&seq);
+					  if (req->isWhite()) {
+						  int bucket = req->getContainer();
+						  enqueue(bucket);
+						  int a = req->getAmount();
+						  REQUEST_DONE++;
+						  if (a == REQUEST_DONE) {
+						  	INTERPRETER->cancel();
+						  	REQUEST_DONE = 0;
+						  }
+					  } else {
+						  enqueue(WASTE_BUCKET);
+					  }
+				  }
+	  		  }
+	  	  };
+
+	  s.app.sensor.out.measuresError = [] {
+			  enqueue(WASTE_BUCKET);
+	  };
 
 	  while(true){
 	  }
 
 	return 0;
+}
+
+void enqueue(int bucket) {
+	if (bucket == 0) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox1(BUCKET_DURATION_ZERO);
+	} else if (bucket == 1) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox2(BUCKET_DURATION_ONE);
+	} else if (bucket == 2) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox3(BUCKET_DURATION_TWO);
+	} else if (bucket == 3) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox4(BUCKET_DURATION_THREE);
+	}
 }

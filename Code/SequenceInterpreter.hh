@@ -6,7 +6,7 @@ public:
   bool append(bool isWhite);
   void cancel();
   void start();
-  Sequence getSequence();
+  Sequence *getSequence();
 
 private:
   int counter;

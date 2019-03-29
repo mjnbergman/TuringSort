@@ -19,14 +19,16 @@ bool SequenceInterpreter::append(bool isWhite) {
 
 void SequenceInterpreter::cancel() {
   counter = 0;
+  seq = new SortSequence(0, 1);
 };
 
 void SequenceInterpreter::start() {
   counter = 0;
+  seq = new SortSequence(0, 1);
 };
 
-Sequence SequenceInterpreter::getSequence() {
-  return seq;
+Sequence *SequenceInterpreter::getSequence() {
+  return &seq;
 };
 
 void SequenceInterpreter::readSequence(bool sequence[]) {
