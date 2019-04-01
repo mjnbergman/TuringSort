@@ -30,18 +30,18 @@ public:
 
         th = thread([=]()
         {
-        	std::cout << "In de thread!!!" << std::endl;
+        //	std::cout << "In de thread!!!" << std::endl;
             if (running == true) {
-            	std::cout << "Running is true, de thread runt!!!" << std::endl;
+            //	std::cout << "Running is true, de thread runt!!!" << " met delay: " << this->delayTime.count() << std::endl;
                 this_thread::sleep_for(this->delayTime);
-                std::cout << "Klaar met slapie!!! Execute nu de functie..." << std::endl;
+             //   std::cout << "Klaar met slapie!!! Execute nu de functie..." << " met delay: " << this->delayTime.count() << std::endl;
                 this->timeoutFunc();
-                std::cout << "Klaar met het uitvoeren van de callback functie!!!" << std::endl;
+             //   std::cout << "Klaar met het uitvoeren van de callback functie!!!" << std::endl;
             }
         });
 
 // [*]
-        th.join();
+        th.detach();
     }
 
     void stop()
@@ -49,8 +49,10 @@ public:
         running = false;
     }
     void setDelay(int i){
+    	  std::cout << "De input is: " << i << std::endl;
 		  std::chrono::milliseconds ms1(i);
 		  this->delayTime = ms1;
+		  std::cout << "De output is: " << this->delayTime.count() << std::endl;
     }
 };
 
