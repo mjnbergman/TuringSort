@@ -28,7 +28,7 @@ void SequenceInterpreter::start() {
 };
 
 Sequence *SequenceInterpreter::getSequence() {
-  return &seq;
+  return seq;
 };
 
 void SequenceInterpreter::readSequence(bool sequence[]) {

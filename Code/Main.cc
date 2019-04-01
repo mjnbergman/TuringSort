@@ -11,7 +11,7 @@
 #include <wiringPi.h>
 #include <mutex>
 #include "SequenceInterpreter.hh"
-#include "MosquittoHandler.cc"
+#include "MosquitoHandler.hh"
 
 System* GLOBAL_SYSTEM;
 SequenceInterpreter *INTERPRETER;
@@ -31,6 +31,10 @@ const double SENSOR_TO_MOTOR2 = 1200;
 const double SENSOR_TO_MOTOR3 = 1600; // all in ms
 const double SENSOR_TO_MOTOR4 = 2000;
 
+const char* MQTT_HOST = "tcp://192.168.0.2";
+const int MQTT_PORT = 1883;
+const int MQTT_KEEP_ALIVE = 60;
+
 void enqueue(int bucket);
 
 const int WASTE_BUCKET = 3;
@@ -47,7 +51,21 @@ int main(){
 
 	  wiringPiSetup();
 
+
+
 	  System s(locator.set(runtime).set(illegal_handler));
+
+
+
+	  mqtt_setSystem(&s);
+	  mqtt_init();
+
+	  TimerHelper mqtt_Threader([](){
+		  mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_KEEP_ALIVE);
+	  });
+
+	  mqtt_Threader.setDelay(100);
+	  mqtt_Threader.start();
 
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
@@ -154,15 +172,15 @@ int main(){
 	  };
   
 	  s.app.sensor.out.measuresBlack = [] {
-		  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+		  if (GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 			  Sequence *seq = INTERPRETER->getSequence();
 			  SortingApplication::OperationMode::type type = seq->getMode();
 			  if (type == SortingApplication::OperationMode::type::Sort) {
-				  SortSequence *sort = dynamic_cast<SortSequence *>(&seq);
+				  SortSequence *sort = dynamic_cast<SortSequence *>(seq);
 				  int bucket = sort->getBB();
 				  enqueue(bucket);
 			  } else if (type == SortingApplication::OperationMode::type::Request) {
-				  RequestSequence *req = dynamic_cast<RequestSequence *>(&seq);
+				  RequestSequence *req = dynamic_cast<RequestSequence *>(seq);
 				  if (req->isWhite()) {
 					  enqueue(WASTE_BUCKET);
 				  } else {
@@ -176,7 +194,7 @@ int main(){
 					  }
 				  }
 			  } else if (type == SortingApplication::OperationMode::type::Fibonacci) {
-				  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(&seq);
+				  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(seq);
 				  int n = fib->getN();
 				  int f = FibonacciSequence::getFibonacci(n);
 				  if (f > FIBONACCI_B0_COUNT && FIBONACCI_FILLING_B0) {
@@ -215,15 +233,15 @@ int main(){
 	  };
 
 	  s.app.sensor.out.measuresWhite = [] {
-			  if (GLOBAL_SYSTEM.app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+			  if (GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 	  			  Sequence *seq = INTERPRETER->getSequence();
 	  			  SortingApplication::OperationMode::type type = seq->getMode();
 	  			  if (type == SortingApplication::OperationMode::type::Sort) {
-	  				  SortSequence *sort = dynamic_cast<SortSequence *>(&seq);
+	  				  SortSequence *sort = dynamic_cast<SortSequence *>(seq);
 	  				  int bucket = sort->getBW();
 	  				  enqueue(bucket);
 	  			  } else if (type == SortingApplication::OperationMode::type::Request) {
-					  RequestSequence *req = dynamic_cast<RequestSequence *>(&seq);
+					  RequestSequence *req = dynamic_cast<RequestSequence *>(seq);
 					  if (req->isWhite()) {
 						  int bucket = req->getContainer();
 						  enqueue(bucket);
@@ -237,7 +255,7 @@ int main(){
 						  enqueue(WASTE_BUCKET);
 					  }
 				  } else if (type == SortingApplication::OperationMode::type::Fibonacci) {
-					  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(&seq);
+					  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(seq);
 					  int n = fib->getN();
 					  int f = FibonacciSequence::getFibonacci(n);
 					  if (f > FIBONACCI_B0_COUNT && FIBONACCI_FILLING_B0) {
@@ -307,7 +325,7 @@ int main(){
 
 		  std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
 	  }
-
+	  mqtt_cleanup();
 	return 0;
 }
 

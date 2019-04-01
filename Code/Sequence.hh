@@ -9,7 +9,10 @@ protected:
 
 public:
     Sequence();
+    virtual ~Sequence() = default;
     SortingApplication::OperationMode::type getMode() const;
+
+
 };
 
 class SortSequence: public Sequence {

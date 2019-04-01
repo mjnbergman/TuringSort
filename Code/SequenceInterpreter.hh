@@ -11,7 +11,7 @@ public:
 private:
   int counter;
   bool array[8];
-  Sequence seq;
+  Sequence* seq;
 
   void readSequence(bool sequence[]);
 };

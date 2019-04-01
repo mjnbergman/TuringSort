@@ -58,7 +58,7 @@ int FibonacciSequence::getN() const {
 }
 
 /* Returns for 0 <= n < 8 a Fibonacci integer */
-static int FibonacciSequence::getFibonacci(int n) {
+int FibonacciSequence::getFibonacci(int n) {
 	if (n >= 8 || n < 0) {
 		std::cerr << "Fibonacci requested for wrong index." << std::endl
 				<< "Expected 0 <= n < 8, got n = " + std::to_string(n) << std::endl;
