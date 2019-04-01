@@ -28,11 +28,10 @@ const double MOTOR_HOLD_DURATION = 200; // ms
 const double SENSOR_TO_MOTOR1 = 1000;
 const double SENSOR_TO_MOTOR2 = 1200;
 const double SENSOR_TO_MOTOR3 = 1600; // all in ms
+const double SENSOR_TO_MOTOR4 = 2000;
 
-const double BUCKET_DURATION_ZERO = 1000;
-const double BUCKET_DURATION_ONE = 1000;
-const double BUCKET_DURATION_TWO = 1000;
-const double BUCKET_DURATION_THREE = 1000;
+void enqueue(int bucket);
+
 const int WASTE_BUCKET = 3;
 
 std::queue<TimerHelper*> boxQueue;
@@ -83,6 +82,7 @@ int main(){
     s.app.box1Time = SENSOR_TO_MOTOR1;
     s.app.box2Time = SENSOR_TO_MOTOR2;
     s.app.box3Time = SENSOR_TO_MOTOR3;
+    s.app.box4Time = SENSOR_TO_MOTOR4;
 
 
 
@@ -268,12 +268,12 @@ int main(){
 
 void enqueue(int bucket) {
 	if (bucket == 0) {
-		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox1(BUCKET_DURATION_ZERO);
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox1(SENSOR_TO_MOTOR1);
 	} else if (bucket == 1) {
-		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox2(BUCKET_DURATION_ONE);
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox2(SENSOR_TO_MOTOR2);
 	} else if (bucket == 2) {
-		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox3(BUCKET_DURATION_TWO);
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox3(SENSOR_TO_MOTOR3);
 	} else if (bucket == 3) {
-		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox4(BUCKET_DURATION_THREE);
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox4(SENSOR_TO_MOTOR4);
 	}
 }

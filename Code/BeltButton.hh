@@ -10,8 +10,8 @@
 #include "System.hh"
 #include "wiringPi.h"
 
-#ifndef TURINGSORT_CODE_TIMERHELPER_HH_
-#define TURINGSORT_CODE_TIMERHELPER_HH_
+#ifndef TURINGSORT_BELTBUTTON_HH__
+#define TURINGSORT_BELTBUTTON_HH__
 
 using namespace std;
 
