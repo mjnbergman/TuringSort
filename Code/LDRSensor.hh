@@ -19,16 +19,21 @@ class LDRSensor {
 
 
         /// PINS ///
-        int chargePin = 3;
-        int dischargePin = 0; //speeds up discharging process, not necessary though
-        int measurePin = 2;
+        const int CHARGE_PIN = 3;
+        const int DISCHARGE_PIN = 0; //speeds up discharging process, not necessary though
+        const int MEASURE_PIN = 2;
+
+        // PREVIOUSLY MAGIC NUMBERS
+        const int DELAY_BETWEEN_MEASUREMENTS = 750;
+        const int DELAY_BETWEEN_DISKS = 100;
+        const double MEASUREMENT_RANGE = 0.2;
 
         /// TIMER ///
         unsigned long startTime = 0;
         unsigned long elapsedTime = 0;
 
         /// CALIBRATION VARS ///
-        const int sampleSize = 11;
+        const int SAMPLE_SIZE = 11;
         unsigned long nullHypothesis = 0;
 
         /// COLOR VERIFICATION VARS ///
