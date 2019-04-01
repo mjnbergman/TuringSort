@@ -8,8 +8,9 @@
 #include <iostream>
 #include <thread>
 #include "System.hh"
+#include <wiringPi.h>
+#include <mutex>
 #include "SequenceInterpreter.hh"
-#include "wiringPi.h"
 
 System* GLOBAL_SYSTEM;
 SequenceInterpreter *INTERPRETER;
@@ -21,12 +22,22 @@ int FIBONACCI_B1_COUNT = 0;
 bool FIBONACCI_FILLING_B0 = true;
 
 
+const int dataPin = 12, latchPin = 13, clockPin = 14;
+
 const double MOTOR_HOLD_DURATION = 200; // ms
+const double SENSOR_TO_MOTOR1 = 1000;
+const double SENSOR_TO_MOTOR2 = 1200;
+const double SENSOR_TO_MOTOR3 = 1600; // all in ms
+
 const double BUCKET_DURATION_ZERO = 1000;
 const double BUCKET_DURATION_ONE = 1000;
 const double BUCKET_DURATION_TWO = 1000;
 const double BUCKET_DURATION_THREE = 1000;
 const int WASTE_BUCKET = 3;
+
+std::queue<TimerHelper*> boxQueue;
+
+std::mutex enqueu1Locker;
 
 int main(){
 
@@ -34,19 +45,14 @@ int main(){
 	  dzn::runtime runtime;
 	  dzn::illegal_handler illegal_handler;
 
-//	  wiringPiSetup();
-
-
-
-	  int dataPin = 5, latchPin = 6, clockPin = 7;
-
+	  wiringPiSetup();
 
 	  System s(locator.set(runtime).set(illegal_handler));
 
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
 
-	  s.sensor.sensor.port_turnOn();
+//	  s.sensor.sensor.port_turnOn();
 
 
 	  auto timerLambda = [] (System s, double ms) {
@@ -56,104 +62,87 @@ int main(){
 			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
 
-    s.belt.control.motor.in.turnClockwise = [] {
-        turnMotor(0, false);
-    };
+    s.belt.motor.setMotorNumber(0);
+    s.belt.motor.setPins(dataPin, latchPin, clockPin);
 
-    s.belt.control.motor.in.turnCounterClockwise = [] {
-        turnMotor(0, true);
-    };
 
-    s.belt.control.motor.in.off = [] {
-        stopMotor(0);
-    };
 
-	  s.pusherSystem.p1.motor.in.turnClockwise = [] {
-			  // Draai motor 1
-        turnMotor(1, false);
-	  };
+    s.pusherSystem.m1.setMotorNumber(1);
+    s.pusherSystem.m1.setPins(dataPin, latchPin, clockPin);
 
-	  s.pusherSystem.p2.motor.in.turnClockwise = [] {
-			  // Draai motor 2
-        turnMotor(2, false);
-	  };
+    s.pusherSystem.m2.setMotorNumber(2);
+    s.pusherSystem.m2.setPins(dataPin, latchPin, clockPin);
 
-	  s.pusherSystem.p3.motor.in.turnClockwise = [] {
-			  // Draai motor 3
-        turnMotor(3, false);
-	  };
+    s.pusherSystem.m3.setMotorNumber(3);
+    s.pusherSystem.m3.setPins(dataPin, latchPin, clockPin);
 
-    s.pusherSystem.p1.motor.in.turnCounterClockwise = [] {
-        turnMotor(1, true);
-    };
+    s.pusherSystem.p1.time = MOTOR_HOLD_DURATION;
+    s.pusherSystem.p2.time = MOTOR_HOLD_DURATION;
+    s.pusherSystem.p3.time = MOTOR_HOLD_DURATION;
 
-    s.pusherSystem.p2.motor.in.turnCounterClockwise = [] {
-        turnMotor(2, true);
-    };
+    s.app.box1Time = SENSOR_TO_MOTOR1;
+    s.app.box2Time = SENSOR_TO_MOTOR2;
+    s.app.box3Time = SENSOR_TO_MOTOR3;
 
-    s.pusherSystem.p3.motor.in.turnCounterClockwise = [] {
-        turnMotor(3, true);
-    };
 
-    s.pusherSystem.p1.motor.in.off = [] {
-        stopMotor(1);
-    };
-
-    s.pusherSystem.p2.motor.in.off = [] {
-        stopMotor(2);
-    };
-
-    s.pusherSystem.p3.motor.in.off = [] {
-        stopMotor(3);
-    };
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+			  //std::cout << "Teeest in de lambda" << std::endl;
+			enqueu1Locker.lock();
+			  std::cout << "Start van de lambda!!!" << std::endl;
+
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.down();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+			  std::cout << "Done with executing enqueueBox1!!!" << std::endl;
+			  enqueu1Locker.unlock();
+			  //std::cout << "Test in de lambda" << std::endl;
 		  };
-		  TimerHelper t1(upDownDelayLambda);
-		  int test = ms;
-		  std::chrono::milliseconds ms1(test);
-	      t1.start(ms1);
+		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
+		  t1->setDelay((int)ms);
+		  boxQueue.push(t1);
+		  //std::cout << "Test enqueue..." << std::endl;
 	  };
 
 	  s.pusherSystem.port.in.enqueueBox2 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+			  enqueu1Locker.lock();
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.down();
 			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+			  enqueu1Locker.unlock();
 		  };
-		  TimerHelper t1(upDownDelayLambda);
-		  int test = ms;
-		  std::chrono::milliseconds ms1(test);
-	      t1.start(ms1);
+		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
+		  t1->setDelay((int)ms);
+		  boxQueue.push(t1);
 	  };
 
 	  s.pusherSystem.port.in.enqueueBox3 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+			  enqueu1Locker.lock();
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.down();
+			  enqueu1Locker.unlock();
 		  };
-		  TimerHelper t1(upDownDelayLambda);
-		  int test = ms;
-		  std::chrono::milliseconds ms1(test);
-	      t1.start(ms1);
+		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
+		  t1->setDelay((int)ms);
+		  boxQueue.push(t1);
 	  };
 	  s.pusherSystem.port.in.enqueueBox4 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+			  enqueu1Locker.lock();
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+			  enqueu1Locker.unlock();
 		  };
-		  TimerHelper t1(upDownDelayLambda);
-		  int test = ms;
-		  std::chrono::milliseconds ms1(test);
-	      t1.start(ms1);
+		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
+		  t1->setDelay((int)ms);
+		  boxQueue.push(t1);
 	  };
-
+  
 	  s.app.sensor.out.measuresBlack = [] {
 		  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 			  Sequence *seq = INTERPRETER->getSequence();
@@ -241,7 +230,37 @@ int main(){
 	  		  }
 	  	  };
 
+  	 std::cout << "Before belt en ik leef";
+	  //s.belt.port.in.turnOn();
+	  s.belt.motor.turnMotor(true);
+//	  s.pusherSystem.m1.turnMotor(true);
+//	  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+//	  s.pusherSystem.p2.port.in.up();
+//	  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+	  std::cout << " \n after belt en ik leef";
+	  delay(1000);
 	  while(true){
+		  std::cout << " Test loop! ";
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox1(200);
+		  std::cout << "Enqueue 1" << std::endl;
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox2(200);
+		  std::cout << "Enqueue 2" << std::endl;
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox3(200);
+		  std::cout << "Enqueue 3" << std::endl;
+		  delay(500);
+		  s.pusherSystem.port.in.enqueueBox4(200);
+		  std::cout << "Enqueue 4" << std::endl;
+		  delay(500);
+
+		  std::cout << "Het komt voorbij de eerste enqueue ronde!" << std::endl;
+
+		  boxQueue.front()->start();
+		  boxQueue.pop();
+
+		  std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
 	  }
 
 	return 0;

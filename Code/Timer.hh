@@ -21,12 +21,16 @@ public:
 		delete t;
 	}
     void port_createTimer (double time){
+      std::cout << "Someone fucked up a timer " << std::endl;
       t = new TimerHelper(this->port.out.timeout);
 	 // int ms = time;
 	 // std::chrono::duration<int, std::milli>;
 	  int test = time;
 	  std::chrono::milliseconds ms(test);
-	  t->start(ms);
+	  std::cout << "If it gets here Jari dies" << std::endl;
+	  t->setDelay(test);
+	  t->start();
+	  std::cout << "Jari lives" << std::endl;
     };
     void port_cancelTimer (){
     	t->stop();
