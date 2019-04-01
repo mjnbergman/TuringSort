@@ -12,12 +12,17 @@
 #include <mutex>
 #include "SequenceInterpreter.hh"
 #include "MosquitoHandler.hh"
+#include "LDRSensor.hh"
 
 // A global reference to the Dezyne System, needed to reference the Dezyne system in lambdas.
 System* GLOBAL_SYSTEM;
 
 // A reference to a SequenceInterpreter object.
 SequenceInterpreter *INTERPRETER;
+
+
+
+LDRSensor *SENSOR;
 
 // Fibonacci globals
 int REQUEST_DONE = 0;
@@ -85,18 +90,24 @@ int main(){
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
 
-//	  s.sensor.sensor.port_turnOn();
 
-
-	  auto timerLambda = [] (System s, double ms) {
-		  	  auto executionLamba = [] {
-
-		  	  };
-			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
+	  auto callbackError = [] () {
+		  GLOBAL_SYSTEM->sensor.port.out.measuresError();
 	  };
 
+	  auto callbackWhite = [] () {
+		  GLOBAL_SYSTEM->sensor.port.out.measuresWhite();
+	  };
 
-	// Motor and conveyer belt initialization.
+	  auto callbackBlack = [] () {
+		  GLOBAL_SYSTEM->sensor.port.out.measuresBlack();
+	  };
+
+	// Sensor initialization
+	  SENSOR = new LDRSensor(callbackError, callbackWhite, callbackBlack);
+	  SENSOR->sensorSetup();
+
+    // Motor and conveyer belt initialization.
     s.belt.motor.setMotorNumber(0);
     s.belt.motor.setPins(dataPin, latchPin, clockPin);
 
@@ -196,6 +207,18 @@ int main(){
 		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
 		  t1->setDelay((int)ms);
 		  boxQueue.push(t1);
+	  };
+
+	  s.app.sensor.in.turnOn = [] (){
+		  auto loopFunc = [] () {
+			  SENSOR->sensorLoop();
+		  }
+		  SensorHelper *s1 = new SensorHelper(loopFunc);
+		  s1->start();
+	  };
+
+	  s.app.sensor.in.calibrate = [] () {
+		  SENSOR->calibrate();
 	  };
   
 	  // Sensor lambdas
