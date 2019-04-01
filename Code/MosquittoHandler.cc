@@ -3,8 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <mosquittopp.h>
+#include "System.hh"
 
 struct mosquitto* mqtt_mosq;
+System *S;
+
+
+void mqtt_setSystem(System *s) {
+	S = s;
+}
 
 void mqtt_cleanup() {
 	mosquitto_destroy(mqtt_mosq);
@@ -23,9 +30,15 @@ void mqtt_sendMessage(const char *msg) {
 	fprintf(stdout, "Message sent over MQTT: %s\n", msg);
 }
 
-void mqtt_takeItem() {}
-void mqtt_startSequence() {}
-void mqtt_reboot() {}
+void mqtt_takeItem() {
+	S->port.in.takeItem();
+}
+void mqtt_startSequence() {
+	S->port.in.startSequence();
+}
+void mqtt_reboot() {
+	S->port.in.reboot();
+}
 void mqtt_sendEmergency() {
 	mqtt_sendMessage("emergency");
 }
