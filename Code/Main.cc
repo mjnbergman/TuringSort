@@ -215,7 +215,7 @@ int main(){
 	  };
 
 	  s.app.sensor.out.measuresWhite = [] {
-			  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+			  if (GLOBAL_SYSTEM.app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 	  			  Sequence *seq = INTERPRETER->getSequence();
 	  			  SortingApplication::OperationMode::type type = seq->getMode();
 	  			  if (type == SortingApplication::OperationMode::type::Sort) {
