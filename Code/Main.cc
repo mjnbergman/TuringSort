@@ -13,6 +13,7 @@
 #include "SequenceInterpreter.hh"
 #include "MosquitoHandler.hh"
 #include "LDRSensor.hh"
+#include "SensorHelper.hh"
 
 // A global reference to the Dezyne System, needed to reference the Dezyne system in lambdas.
 System* GLOBAL_SYSTEM;
@@ -212,7 +213,7 @@ int main(){
 	  s.app.sensor.in.turnOn = [] (){
 		  auto loopFunc = [] () {
 			  SENSOR->sensorLoop();
-		  }
+		  };
 		  SensorHelper *s1 = new SensorHelper(loopFunc);
 		  s1->start();
 	  };
@@ -359,28 +360,14 @@ int main(){
 	  // or the execution of the application terminated.
 	  while(true){
 		  std::cout << " Test loop! ";
-		  delay(500);
-		  s.pusherSystem.port.in.enqueueBox1(200);
-		  std::cout << "Enqueue 1" << std::endl;
-		  delay(500);
-		  s.pusherSystem.port.in.enqueueBox2(200);
-		  std::cout << "Enqueue 2" << std::endl;
-		  delay(500);
-		  s.pusherSystem.port.in.enqueueBox3(200);
-		  std::cout << "Enqueue 3" << std::endl;
-		  delay(500);
-		  s.pusherSystem.port.in.enqueueBox4(200);
-		  std::cout << "Enqueue 4" << std::endl;
-		  delay(500);
-
 		  std::cout << "Het komt voorbij de eerste enqueue ronde!" << std::endl;
-
 
 		  // Pop the top element from the queue (a request to put a chip in a certain box) and execute
 		  // that request (so move the motors to such a position that a chip passing by will land
 		  // in the corresponding box.
 		  boxQueue.front()->start();
 		  boxQueue.pop();
+		  delay(50);
 
 		  std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
 	  }

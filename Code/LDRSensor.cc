@@ -190,6 +190,7 @@ void LDRSensor::genWhiteEvent(){
       return;
   }
   detected = true;
+  callbackWhite();
   std::cout << "WHITE" << std::endl;
 }
 
@@ -202,6 +203,7 @@ void LDRSensor::genBlackEvent(){
     return;
   }
   detected = true;
+  callbackBlack();
   std::cout << "BLACK" << std::endl;
 }
 

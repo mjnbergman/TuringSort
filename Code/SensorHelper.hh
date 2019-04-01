@@ -5,8 +5,10 @@
  *      Author: Jari Martens
  */
 
+
 #include <iostream>
 #include <thread>
+
 
 #ifndef TURINGSORT_CODE_SENSORHELPER_HH_
 #define TURINGSORT_CODE_SENSORHELPER_HH_
@@ -15,7 +17,7 @@ using namespace std;
 
 class SensorHelper
 {
-    thread th;
+    std::thread th;
     bool running = false;
     std::function<void(void)> loopFunc;
 public:
@@ -26,7 +28,7 @@ public:
     {
         running = true;
 
-        th = thread([=]()
+        th = std::thread([=]()
         {
             while (running == true) {
                 this->loopFunc();
