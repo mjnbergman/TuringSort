@@ -6,9 +6,15 @@
 
 class LDRSensor {
     public:
+		typedef std::function<void(void)> Callback;
+		LDRSensor(Callback error, Callback white, Callback black);
         void sensorSetup();
+        void calibrate();
         void sensorLoop();
     private:
+        std::function<void(void)> callbackError;
+        std::function<void(void)> callbackWhite;
+        std::function<void(void)> callbackBlack;
 
 
         /// PINS ///
@@ -17,16 +23,16 @@ class LDRSensor {
         int measurePin = 2;
 
         /// TIMER ///
-        unsigned long startTime;
-        unsigned long elapsedTime;
+        unsigned long startTime = 0;
+        unsigned long elapsedTime = 0;
 
         /// CALIBRATION VARS ///
         const int sampleSize = 11;
-        unsigned long nullHypothesis;
+        unsigned long nullHypothesis = 0;
 
         /// COLOR VERIFICATION VARS ///
-        unsigned long blackish;
-        unsigned long whiteish;
+        unsigned long blackish = 0;
+        unsigned long whiteish = 0;
         bool firstWhite = true;
         bool firstBlack = true;
         bool secondWhite = true;
@@ -42,7 +48,6 @@ class LDRSensor {
         enum Detected {BLACK, WHITE, NOTHING, EXIT};
         enum Error {LED, LDR, DDISK};
 
-        void calibrate();
         void doMeasurement(bool isSetup);
         Detected determineColor();
         void checkResult(Detected d);

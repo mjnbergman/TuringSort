@@ -1,5 +1,11 @@
 #include "LDRSensor.hh"
 
+
+LDRSensor::LDRSensor(LDRSensor::Callback error, LDRSensor::Callback white, LDRSensor::Callback black)
+: callbackError(error), callbackWhite(white), callbackBlack(black)
+{
+}
+
 /// SETUP FUNCTIONS ///
 void LDRSensor::sensorSetup(){
   //create null hypothesis
@@ -8,8 +14,6 @@ void LDRSensor::sensorSetup(){
   pinMode(chargePin, OUTPUT);
   digitalWrite(chargePin, LOW);  
   //Serial.begin(9600); // Necessary to print data to serial monitor over USB
-
-  calibrate();
 }
 
 void LDRSensor::calibrate(){
@@ -220,6 +224,7 @@ void LDRSensor::genErrorEvent(Error e){
     case LED: std::cout << "Light level has been changed after calibration." << std::endl; break;
     case DDISK: std::cout << "Concurrent disk detection is not allowed!" << std::endl; break;
   }  
+  this->callbackError();
 }
 
 /// ERROR CHECKERS ///
@@ -245,7 +250,7 @@ bool LDRSensor::checkLEDs(unsigned long colorValue, Detected d){
 void LDRSensor::sort(unsigned long arr[], int n){
   //all these arrs are size 11, fortunately.
   int i, j;
-  unsigned long key; 
+  unsigned long key;
     for (i = 1; i < n; i++) { 
         key = arr[i]; 
         j = i - 1; 
