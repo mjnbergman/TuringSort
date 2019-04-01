@@ -1,8 +1,8 @@
 #include <wiringPi.h>
 
 /// PINS ///
-int chargePin = 13;
-int dischargePin = 11; //speeds up discharging process, not necessary though
+int chargePin = 3;
+int dischargePin = 0; //speeds up discharging process, not necessary though
 int measurePin = 2;
 
 /// TIMER ///
