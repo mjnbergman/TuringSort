@@ -13,6 +13,12 @@
 
 using namespace std;
 
+/**
+ * The TimerHelper class functions like a wrapper class for the creation and execution of seperate threads.
+ * It allows you to pass in a lambda function and a delay (which is internally passed to a std::chrono:milliseconds value).
+ * After you call the start() function of a TimerHelper object, it will create a seperate thread, sleep this thread
+ * for the delay you specified, and then execute your lambda function.
+ */
 class TimerHelper
 {
     thread th;

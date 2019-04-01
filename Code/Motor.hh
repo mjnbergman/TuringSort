@@ -13,7 +13,10 @@
 
 typedef uint8_t byte;
 
-
+/**
+ * The motor struct encapsulates the actual calls to the hardware. In this class we use wiringPi calls
+ * to actuate the motor. The functions in this class are called by Dezyne.
+ */
 struct Motor : skel::Motor{
 private:
 
@@ -29,6 +32,7 @@ public:
 
     Motor(const dzn::locator& dzn_locator) : skel::Motor(dzn_locator){
     };
+    // Turn the motor clockwise, off and counterclockwise respectively.
     void port_turnClockwise (){
     	turnMotor(false);
     }
@@ -98,10 +102,12 @@ public:
       Motor::motorBitsToSend &= ~(1 << (bitToWrite + 1));
       registerWrite();
     }
-
+    // Set the specific motor number this instance should represent, ranging from 0..3
     void setMotorNumber(int pin){
     	this->motorPin = pin;
     }
+    // Set the physical GPIO pins this motor can use, physically a shift register is used to
+    // drive the motor so specify the corresponding shift register pins.
     void setPins(int dataPin, int latchPin, int clockPin){
     	this->dataPin = dataPin;
     	this->latchPin = latchPin;

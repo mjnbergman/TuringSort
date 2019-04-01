@@ -13,8 +13,13 @@
 #include "SequenceInterpreter.hh"
 #include "MosquitoHandler.hh"
 
+// A global reference to the Dezyne System, needed to reference the Dezyne system in lambdas.
 System* GLOBAL_SYSTEM;
+
+// A reference to a SequenceInterpreter object.
 SequenceInterpreter *INTERPRETER;
+
+// Fibonacci globals
 int REQUEST_DONE = 0;
 int FIBONACCI_B0 = 0;
 int FIBONACCI_B1 = 0;
@@ -22,41 +27,50 @@ int FIBONACCI_B0_COUNT = 0;
 int FIBONACCI_B1_COUNT = 0;
 bool FIBONACCI_FILLING_B0 = true;
 
-
+// Define the shift register pins globally, these will be used for the motors.
 const int dataPin = 12, latchPin = 13, clockPin = 14;
 
+// Constant durations we measured and determined the values of experimentally, used
+// to determine the amount of time timers should wait when activating motors and other things.
 const double MOTOR_HOLD_DURATION = 200; // ms
 const double SENSOR_TO_MOTOR1 = 1000;
 const double SENSOR_TO_MOTOR2 = 1200;
 const double SENSOR_TO_MOTOR3 = 1600; // all in ms
 const double SENSOR_TO_MOTOR4 = 2000;
 
+// The protocol details of the MQTT host
 const char* MQTT_HOST = "tcp://192.168.0.2";
 const int MQTT_PORT = 1883;
 const int MQTT_KEEP_ALIVE = 60;
 
+// A pre-declaration of the enqueue function.
 void enqueue(int bucket);
 
 const int WASTE_BUCKET = 3;
 
+// The queue that motor-turn requests are placed in when calling enqueueBox1...enqueueBox4.
 std::queue<TimerHelper*> boxQueue;
 
+// A mutex used for locking the enqueueBox1...enqueueBox4 function lambdas.
 std::mutex enqueu1Locker;
 
 int main(){
 
+	  // Dezyne initialization.
 	  dzn::locator locator;
 	  dzn::runtime runtime;
 	  dzn::illegal_handler illegal_handler;
 
+
+	  // Setup wiring pi.
 	  wiringPiSetup();
 
 
-
+	  // Initialize the main Dezyne System component.
 	  System s(locator.set(runtime).set(illegal_handler));
 
 
-
+	  // Initialize MQTT
 	  mqtt_setSystem(&s);
 	  mqtt_init();
 
@@ -67,6 +81,7 @@ int main(){
 	  mqtt_Threader.setDelay(100);
 	  mqtt_Threader.start();
 
+	  // Set references to the global system and SequenceInterpreter
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
 
@@ -80,6 +95,8 @@ int main(){
 			  TimerHelper t(s.pusherSystem.p1.timer.out.timeout);
 	  };
 
+
+	// Motor and conveyer belt initialization.
     s.belt.motor.setMotorNumber(0);
     s.belt.motor.setPins(dataPin, latchPin, clockPin);
 
@@ -97,11 +114,13 @@ int main(){
     s.pusherSystem.p2.time = MOTOR_HOLD_DURATION;
     s.pusherSystem.p3.time = MOTOR_HOLD_DURATION;
 
+    // Timing constant initialization
     s.app.box1Time = SENSOR_TO_MOTOR1;
     s.app.box2Time = SENSOR_TO_MOTOR2;
     s.app.box3Time = SENSOR_TO_MOTOR3;
     s.app.box4Time = SENSOR_TO_MOTOR4;
 
+    // MQTT lambdas
     s.port.out.available = [] () {
     	mqtt_available();
     };
@@ -114,9 +133,11 @@ int main(){
         mqtt_sendEmergency();
     };
 
+    // enqueueBox1...enqueueBox4 motor lambdas.
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
-			  //std::cout << "Teeest in de lambda" << std::endl;
+			// When this lambda is executed, move the motors in such a way that a chip passing through
+			// will land in box 1.
 			enqueu1Locker.lock();
 			  std::cout << "Start van de lambda!!!" << std::endl;
 
@@ -135,6 +156,8 @@ int main(){
 
 	  s.pusherSystem.port.in.enqueueBox2 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+				// When this lambda is executed, move the motors in such a way that a chip passing through
+				// will land in box 2.
 			  enqueu1Locker.lock();
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.down();
@@ -148,6 +171,8 @@ int main(){
 
 	  s.pusherSystem.port.in.enqueueBox3 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+				// When this lambda is executed, move the motors in such a way that a chip passing through
+				// will land in box 1.
 			  enqueu1Locker.lock();
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
@@ -160,6 +185,8 @@ int main(){
 	  };
 	  s.pusherSystem.port.in.enqueueBox4 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
+				// When this lambda is executed, move the motors in such a way that a chip passing through
+				// will land in box 4.
 			  enqueu1Locker.lock();
 			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
@@ -171,6 +198,7 @@ int main(){
 		  boxQueue.push(t1);
 	  };
   
+	  // Sensor lambdas
 	  s.app.sensor.out.measuresBlack = [] {
 		  if (GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 			  Sequence *seq = INTERPRETER->getSequence();
@@ -294,7 +322,8 @@ int main(){
 	  	  };
 
   	 std::cout << "Before belt en ik leef";
-	  //s.belt.port.in.turnOn();
+
+  	 // Turn on the conveyer belt, this should always be running
 	  s.belt.motor.turnMotor(true);
 //	  s.pusherSystem.m1.turnMotor(true);
 //	  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
@@ -302,6 +331,9 @@ int main(){
 //	  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
 	  std::cout << " \n after belt en ik leef";
 	  delay(1000);
+
+	  // A permanent loop so the system will always continue running unless the power is taken off
+	  // or the execution of the application terminated.
 	  while(true){
 		  std::cout << " Test loop! ";
 		  delay(500);
@@ -320,15 +352,23 @@ int main(){
 
 		  std::cout << "Het komt voorbij de eerste enqueue ronde!" << std::endl;
 
+
+		  // Pop the top element from the queue (a request to put a chip in a certain box) and execute
+		  // that request (so move the motors to such a position that a chip passing by will land
+		  // in the corresponding box.
 		  boxQueue.front()->start();
 		  boxQueue.pop();
 
 		  std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
 	  }
+
+	  // Do some MQTT cleanup
 	  mqtt_cleanup();
 	return 0;
 }
 
+// The enqueue function, just a wrapper for the specific enqueueBox1...enqueueBox4 calls allowing you to
+// pick one of them based on the box number programmatically.
 void enqueue(int bucket) {
 	if (bucket == 0) {
 		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox1(SENSOR_TO_MOTOR1);
