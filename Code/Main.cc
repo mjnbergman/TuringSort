@@ -176,6 +176,41 @@ int main(){
 						  REQUEST_DONE = 0;
 					  }
 				  }
+			  } else if (type == SortingApplication::OperationMode::type::Fibonacci) {
+				  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(&seq);
+				  int n = fib->getN();
+				  int f = FibonacciSequence::getFibonacci(n);
+				  if (f > FIBONACCI_B0_COUNT && FIBONACCI_FILLING_B0) {
+					  enqueue(0);
+					  FIBONACCI_B0_COUNT++;
+					  int F = FibonacciSequence::getFibonacci(FIBONACCI_B0);
+					  if (F == FIBONACCI_B0_COUNT){
+						  if (F == f) {
+							  //done, back to sorting mode;
+							  std::cout << "FINISHED FIBONACCI(" + std::to_string(n) + ") = " + std::to_string(f) + "IN BUCKET 0" << std::endl;
+							  INTERPRETER->cancel();
+						  } else {
+							  FIBONACCI_B1 += 2;
+							  FIBONACCI_FILLING_B0 = !FIBONACCI_FILLING_B0;
+						  }
+					  }
+				  } else if (f > FIBONACCI_B1_COUNT && !FIBONACCI_FILLING_B0) {
+					  enqueue(1);
+					  FIBONACCI_B1_COUNT++;
+					  int F = FibonacciSequence::getFibonacci(FIBONACCI_B0);
+					  if (F == FIBONACCI_B1_COUNT){
+						  if (F == f) {
+							  //done, back to sorting mode;
+							  std::cout << "FINISHED FIBONACCI(" + std::to_string(n) + ") = " + std::to_string(f) + "IN BUCKET 1" << std::endl;
+							  INTERPRETER->cancel();
+						  } else {
+							  FIBONACCI_B0 += 2;
+							  FIBONACCI_FILLING_B0 = !FIBONACCI_FILLING_B0;
+						  }
+					  }
+				  } else {
+					  std::cout << "Whoops, Fibonacci weirdness" << std::endl;
+				  }
 			  }
 		  }
 	  };
