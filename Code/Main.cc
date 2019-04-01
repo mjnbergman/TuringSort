@@ -11,6 +11,7 @@
 #include <wiringPi.h>
 #include <mutex>
 #include "SequenceInterpreter.hh"
+#include "MosquittoHandler.cc"
 
 System* GLOBAL_SYSTEM;
 SequenceInterpreter *INTERPRETER;
@@ -66,7 +67,6 @@ int main(){
     s.belt.motor.setPins(dataPin, latchPin, clockPin);
 
 
-
     s.pusherSystem.m1.setMotorNumber(1);
     s.pusherSystem.m1.setPins(dataPin, latchPin, clockPin);
 
@@ -84,7 +84,17 @@ int main(){
     s.app.box2Time = SENSOR_TO_MOTOR2;
     s.app.box3Time = SENSOR_TO_MOTOR3;
 
+    s.port.out.available = [] () {
+    	mqtt_available();
+    };
 
+    s.port.out.sequenceReceived = [] () {
+        mqtt_sequenceReceived();
+    };
+
+    s.port.out.sendEmergency = [] () {
+        mqtt_sendEmergency();
+    };
 
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
 		  auto upDownDelayLambda = [] (){
