@@ -25,6 +25,8 @@ SequenceInterpreter *INTERPRETER;
 
 LDRSensor *SENSOR;
 
+SensorHelper *S1;
+
 // Fibonacci globals
 int REQUEST_DONE = 0;
 int FIBONACCI_B0 = 0;
@@ -77,30 +79,43 @@ int main(){
 
 
 	  // Initialize MQTT
-	  mqtt_setSystem(&s);
-	  mqtt_init();
+//	  mqtt_setSystem(&s);
+//	  mqtt_init();
 
 	  TimerHelper mqtt_Threader([](){
-		  mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_KEEP_ALIVE);
+	//	  mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_KEEP_ALIVE);
 	  });
 
-	  mqtt_Threader.setDelay(100);
-	  mqtt_Threader.start();
+//	  mqtt_Threader.setDelay(100);
+//	  mqtt_Threader.start();
 
 	  // Set references to the global system and SequenceInterpreter
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
 
+	  INTERPRETER->start();
+	  INTERPRETER->append(false);
+	  INTERPRETER->append(false);
+	  INTERPRETER->append(false);
+	  INTERPRETER->append(false);
+	  INTERPRETER->append(true);
+	  INTERPRETER->append(false);
+	  INTERPRETER->append(false);
+	  INTERPRETER->append(false);
+
 
 	  auto callbackError = [] () {
+		  std::cout << "Measures error\n";
 		  GLOBAL_SYSTEM->sensor.port.out.measuresError();
 	  };
 
 	  auto callbackWhite = [] () {
+		  std::cout << "Measures white\n";
 		  GLOBAL_SYSTEM->sensor.port.out.measuresWhite();
 	  };
 
 	  auto callbackBlack = [] () {
+		  std::cout << "Measures black\n";
 		  GLOBAL_SYSTEM->sensor.port.out.measuresBlack();
 	  };
 
@@ -134,15 +149,15 @@ int main(){
 
     // MQTT lambdas
     s.port.out.available = [] () {
-    	mqtt_available();
+  //  	mqtt_available();
     };
 
     s.port.out.sequenceReceived = [] () {
-        mqtt_sequenceReceived();
+  //      mqtt_sequenceReceived();
     };
 
     s.port.out.sendEmergency = [] () {
-        mqtt_sendEmergency();
+  //      mqtt_sendEmergency();
     };
 
     // enqueueBox1...enqueueBox4 motor lambdas.
@@ -214,16 +229,21 @@ int main(){
 		  auto loopFunc = [] () {
 			  SENSOR->sensorLoop();
 		  };
-		  SensorHelper *s1 = new SensorHelper(loopFunc);
-		  s1->start();
+		  S1 = new SensorHelper(loopFunc);
+		  S1->start();
 	  };
 
 	  s.app.sensor.in.calibrate = [] () {
 		  SENSOR->calibrate();
 	  };
+
+	  s.app.sensor.in.turnOff = [] () {
+		  S1->stop();
+	  };
   
 	  // Sensor lambdas
 	  s.app.sensor.out.measuresBlack = [] {
+		  std::cout << "MEASURES BLACK!!!!\n\n\n";
 		  if (GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 			  Sequence *seq = INTERPRETER->getSequence();
 			  SortingApplication::OperationMode::type type = seq->getMode();
@@ -285,6 +305,7 @@ int main(){
 	  };
 
 	  s.app.sensor.out.measuresWhite = [] {
+			  std::cout << "MEASURES WHITE!!!\n\n\n";
 			  if (GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::Rebooting && GLOBAL_SYSTEM->app.mode != SortingApplication::OperationMode::type::SequenceReading) {
 	  			  Sequence *seq = INTERPRETER->getSequence();
 	  			  SortingApplication::OperationMode::type type = seq->getMode();
@@ -345,10 +366,12 @@ int main(){
 	  		  }
 	  	  };
 
+	 s.app.sensor.in.turnOn();
+	 s.app.sensor.in.calibrate();
   	 std::cout << "Before belt en ik leef";
-
+     s.belt.port.in.setCounterClockwise();
   	 // Turn on the conveyer belt, this should always be running
-	  s.belt.motor.turnMotor(true);
+	  s.belt.port.in.turnOn();
 //	  s.pusherSystem.m1.turnMotor(true);
 //	  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 //	  s.pusherSystem.p2.port.in.up();
@@ -359,21 +382,24 @@ int main(){
 	  // A permanent loop so the system will always continue running unless the power is taken off
 	  // or the execution of the application terminated.
 	  while(true){
-		  std::cout << " Test loop! ";
-		  std::cout << "Het komt voorbij de eerste enqueue ronde!" << std::endl;
+		//  std::cout << " Test loop! ";
+		//  std::cout << "Het komt voorbij de eerste enqueue ronde!" << std::endl;
 
 		  // Pop the top element from the queue (a request to put a chip in a certain box) and execute
 		  // that request (so move the motors to such a position that a chip passing by will land
 		  // in the corresponding box.
-		  boxQueue.front()->start();
-		  boxQueue.pop();
+
+		  if(!boxQueue.empty()){
+			  boxQueue.front()->start();
+			  boxQueue.pop();
+		  }
 		  delay(50);
 
-		  std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
+		 // std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
 	  }
 
 	  // Do some MQTT cleanup
-	  mqtt_cleanup();
+	//  mqtt_cleanup();
 	return 0;
 }
 

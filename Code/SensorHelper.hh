@@ -15,6 +15,8 @@
 
 using namespace std;
 
+std::mutex sensorLocker;
+
 class SensorHelper
 {
     std::thread th;
@@ -31,7 +33,11 @@ public:
         th = std::thread([=]()
         {
             while (running == true) {
+            	sensorLocker.lock();
+            	std::cout << "Before executin measuring func" << std::endl;
                 this->loopFunc();
+                std::cout << "After executing measuring func\n\n";
+                sensorLocker.unlock();
             }
         });
         th.detach();
