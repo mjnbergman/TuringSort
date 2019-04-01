@@ -10,8 +10,17 @@
 #include "System.hh"
 #include <wiringPi.h>
 #include <mutex>
+#include "SequenceInterpreter.hh"
 
 System* GLOBAL_SYSTEM;
+SequenceInterpreter *INTERPRETER;
+int REQUEST_DONE = 0;
+int FIBONACCI_B0 = 0;
+int FIBONACCI_B1 = 0;
+int FIBONACCI_B0_COUNT = 0;
+int FIBONACCI_B1_COUNT = 0;
+bool FIBONACCI_FILLING_B0 = true;
+
 
 const int dataPin = 12, latchPin = 13, clockPin = 14;
 
@@ -19,6 +28,12 @@ const double MOTOR_HOLD_DURATION = 200; // ms
 const double SENSOR_TO_MOTOR1 = 1000;
 const double SENSOR_TO_MOTOR2 = 1200;
 const double SENSOR_TO_MOTOR3 = 1600; // all in ms
+
+const double BUCKET_DURATION_ZERO = 1000;
+const double BUCKET_DURATION_ONE = 1000;
+const double BUCKET_DURATION_TWO = 1000;
+const double BUCKET_DURATION_THREE = 1000;
+const int WASTE_BUCKET = 3;
 
 std::queue<TimerHelper*> boxQueue;
 
@@ -35,6 +50,7 @@ int main(){
 	  System s(locator.set(runtime).set(illegal_handler));
 
 	  GLOBAL_SYSTEM = &s;
+	  INTERPRETER = new SequenceInterpreter();
 
 //	  s.sensor.sensor.port_turnOn();
 
@@ -126,9 +142,95 @@ int main(){
 		  t1->setDelay((int)ms);
 		  boxQueue.push(t1);
 	  };
+  
+	  s.app.sensor.out.measuresBlack = [] {
+		  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+			  Sequence *seq = INTERPRETER->getSequence();
+			  SortingApplication::OperationMode::type type = seq->getMode();
+			  if (type == SortingApplication::OperationMode::type::Sort) {
+				  SortSequence *sort = dynamic_cast<SortSequence *>(&seq);
+				  int bucket = sort->getBB();
+				  enqueue(bucket);
+			  } else if (type == SortingApplication::OperationMode::type::Request) {
+				  RequestSequence *req = dynamic_cast<RequestSequence *>(&seq);
+				  if (req->isWhite()) {
+					  enqueue(WASTE_BUCKET);
+				  } else {
+					  int bucket = req->getContainer();
+					  enqueue(bucket);
+					  int a = req->getAmount();
+					  REQUEST_DONE++;
+					  if (a == REQUEST_DONE) {
+						  INTERPRETER->cancel();
+						  REQUEST_DONE = 0;
+					  }
+				  }
+			  }
+		  }
+	  };
 
-	  std::cout << "Before belt en ik leef";
+	  s.app.sensor.out.measuresWhite = [] {
+			  if (s.app.mode != SortingApplication::OperationMode::type::Rebooting && s.app.mode != SortingApplication::OperationMode::type::SequenceReading) {
+	  			  Sequence *seq = INTERPRETER->getSequence();
+	  			  SortingApplication::OperationMode::type type = seq->getMode();
+	  			  if (type == SortingApplication::OperationMode::type::Sort) {
+	  				  SortSequence *sort = dynamic_cast<SortSequence *>(&seq);
+	  				  int bucket = sort->getBW();
+	  				  enqueue(bucket);
+	  			  } else if (type == SortingApplication::OperationMode::type::Request) {
+					  RequestSequence *req = dynamic_cast<RequestSequence *>(&seq);
+					  if (req->isWhite()) {
+						  int bucket = req->getContainer();
+						  enqueue(bucket);
+						  int a = req->getAmount();
+						  REQUEST_DONE++;
+						  if (a == REQUEST_DONE) {
+						  	INTERPRETER->cancel();
+						  	REQUEST_DONE = 0;
+						  }
+					  } else {
+						  enqueue(WASTE_BUCKET);
+					  }
+				  } else if (type == SortingApplication::OperationMode::type::Fibonacci) {
+					  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(&seq);
+					  int n = fib->getN();
+					  int f = FibonacciSequence::getFibonacci(n);
+					  if (f > FIBONACCI_B0_COUNT && FIBONACCI_FILLING_B0) {
+						  enqueue(0);
+						  FIBONACCI_B0_COUNT++;
+						  int F = FibonacciSequence::getFibonacci(FIBONACCI_B0);
+						  if (F == FIBONACCI_B0_COUNT){
+							  if (F == f) {
+								  //done, back to sorting mode;
+								  std::cout << "FINISHED FIBONACCI(" + std::to_string(n) + ") = " + std::to_string(f) + "IN BUCKET 0" << std::endl;
+								  INTERPRETER->cancel();
+							  } else {
+								  FIBONACCI_B1 += 2;
+								  FIBONACCI_FILLING_B0 = !FIBONACCI_FILLING_B0;
+							  }
+						  }
+					  } else if (f > FIBONACCI_B1_COUNT && !FIBONACCI_FILLING_B0) {
+						  enqueue(1);
+						  FIBONACCI_B1_COUNT++;
+						  int F = FibonacciSequence::getFibonacci(FIBONACCI_B0);
+						  if (F == FIBONACCI_B1_COUNT){
+							  if (F == f) {
+								  //done, back to sorting mode;
+								  std::cout << "FINISHED FIBONACCI(" + std::to_string(n) + ") = " + std::to_string(f) + "IN BUCKET 1" << std::endl;
+								  INTERPRETER->cancel();
+							  } else {
+								  FIBONACCI_B0 += 2;
+								  FIBONACCI_FILLING_B0 = !FIBONACCI_FILLING_B0;
+							  }
+						  }
+					  } else {
+						  std::cout << "Whoops, Fibonacci weirdness" << std::endl;
+					  }
+				  }
+	  		  }
+	  	  };
 
+  	 std::cout << "Before belt en ik leef";
 	  //s.belt.port.in.turnOn();
 	  s.belt.motor.turnMotor(true);
 //	  s.pusherSystem.m1.turnMotor(true);
@@ -162,4 +264,16 @@ int main(){
 	  }
 
 	return 0;
+}
+
+void enqueue(int bucket) {
+	if (bucket == 0) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox1(BUCKET_DURATION_ZERO);
+	} else if (bucket == 1) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox2(BUCKET_DURATION_ONE);
+	} else if (bucket == 2) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox3(BUCKET_DURATION_TWO);
+	} else if (bucket == 3) {
+		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox4(BUCKET_DURATION_THREE);
+	}
 }
