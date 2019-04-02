@@ -33,7 +33,7 @@ void mqtt_connect(const char *host, int port, int keepAlive) {
 	//if (mosquitto_connect(mqtt_mosq, host, port, keepAlive)) {
 	//	fprintf(stderr, "MQTT connection failed.\n");
 	//}
-	std::cout << mosquitto_connect(mqtt_mosq, host, port, keepAlive) << std::endl;
+	std::cout << "mosquitto_connect rc: " << mosquitto_connect(mqtt_mosq, host, port, keepAlive) << std::endl;
 }
 
 void mqtt_loopStart() {
