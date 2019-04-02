@@ -15,6 +15,7 @@ void LDRSensor::sensorSetup(){
   pinMode(measureBlackPin, INPUT);
 //  digitalWrite(chargePin, LOW);
   std::cout << "Reached the end of setup...";
+
   //Serial.begin(9600); // Necessary to print data to serial monitor over USB
 }
 
@@ -46,8 +47,13 @@ void LDRSensor::sensorLoop(){
    this->generateColorEvent(this->doMeasurement());
 }
 
+
 LDRSensor::Detected LDRSensor::doMeasurement(){
 /*  digitalWrite(chargePin, HIGH); // Begins charging the capacitor
+
+void LDRSensor::doMeasurement(bool isSetup){
+  digitalWrite(CHARGE_PIN, HIGH); // Begins charging the capacitor
+
   startTime = micros();
 
   bool chargeError = chargeCapacitor();
@@ -107,7 +113,7 @@ LDRSensor::Detected LDRSensor::determineColor(){
     
     if (firstWhite){ //return to do another measure quickly
       firstWhite = false;
-      redoIn(100);  
+      redoIn(DELAY_BETWEEN_DISKS);
       return EXIT; //exit loop
     }
 
@@ -121,7 +127,7 @@ LDRSensor::Detected LDRSensor::determineColor(){
     
     if (firstBlack){
       firstBlack = false;
-      redoIn(100); 
+      redoIn(DELAY_BETWEEN_DISKS);
       return EXIT; //exit loop  
     }
     
@@ -154,7 +160,7 @@ void LDRSensor::checkResult(Detected d){
 
 void LDRSensor::redoIn(unsigned long ms) {
   long time_1 = millis();
-  while (digitalRead(measurePin) == HIGH){
+  while (digitalRead(MEASURE_PIN) == HIGH){
     bool error = LDRErrorGuard(time_1);
       if (error) {
 
@@ -163,12 +169,12 @@ void LDRSensor::redoIn(unsigned long ms) {
       } //discharge
   }
   while (millis() - time_1 < ms); //delay ms while taking the other while in account
-  pinMode(dischargePin, INPUT); // Prevents capacitor from discharging
+  pinMode(DISCHARGE_PIN, INPUT); // Prevents capacitor from discharging
 }
 
 /// CAPACITOR CONTROL FUNCTIONS ///
 bool LDRSensor::chargeCapacitor(){ //returns wether or not an error occured
-  while (digitalRead(measurePin) == LOW) {
+  while (digitalRead(MEASURE_PIN) == LOW) {
     //wait for the capacitor to charge the pin to HIGH
     bool error = LDRErrorGuard(startTime);
     std::cout << "Charging since..." << startTime << " for " << (micros() - startTime) << " micros!" << std::endl;
@@ -185,14 +191,14 @@ bool LDRSensor::chargeCapacitor(){ //returns wether or not an error occured
 */
 /*
 void LDRSensor::stopChargingCapacitor(){
-  digitalWrite(chargePin, LOW); // Stops charging capacitor
-  pinMode(dischargePin, OUTPUT); 
-  digitalWrite(dischargePin, LOW); // Allows capacitor to discharge
+  digitalWrite(CHARGE_PIN, LOW); // Stops charging capacitor
+  pinMode(DISCHARGE_PIN, OUTPUT);
+  digitalWrite(DISCHARGE_PIN, LOW); // Allows capacitor to discharge
 }
 
 void LDRSensor::stopDischargingCapacitor(){
   unsigned long time_1 = micros();
-  while (digitalRead(measurePin) == HIGH){
+  while (digitalRead(MEASURE_PIN) == HIGH){
     //let the pin fully discharge, if not done already
     bool error = LDRErrorGuard(time_1);
     if (error){
@@ -201,16 +207,16 @@ void LDRSensor::stopDischargingCapacitor(){
       break;
     }
   }
-  pinMode(dischargePin, INPUT); // Prevents capacitor from discharging
+  pinMode(DISCHARGE_PIN, INPUT); // Prevents capacitor from discharging
 }
 */
 /// DEZYNE EVENT GENERATORS ///
 void LDRSensor::generateColorEvent(Detected d){
   switch(d){
       case WHITE:
-        genWhiteEvent(); delay(750); break;
+        genWhiteEvent(); delay(DELAY_BETWEEN_MEASUREMENTS); break;
       case BLACK:
-        genBlackEvent(); delay(750); break;
+        genBlackEvent(); delay(DELAY_BETWEEN_MEASUREMENTS); break;
       case NOTHING: 
         genNothingEvent(); break;
       case ERROR:
@@ -279,8 +285,8 @@ bool LDRSensor::LDRErrorGuard(unsigned long started){
 
 bool LDRSensor::checkLEDs(unsigned long colorValue, Detected d){
   switch(d){
-    case WHITE: return (colorValue > 1.2 * whiteish || colorValue < 0.8 * whiteish); //color is more than 20% darker than before.
-    case BLACK: return (colorValue > 1.2 * blackish || colorValue < 0.8 * blackish); //color is more than 20% darker than before.
+    case WHITE: return (colorValue > (1+MEASUREMENT_RANGE) * whiteish || colorValue < (1-MEASUREMENT_RANGE) * whiteish); //color is more than 20% darker than before.
+    case BLACK: return (colorValue > (1+MEASUREMENT_RANGE) * blackish || colorValue < (1-MEASUREMENT_RANGE) * blackish); //color is more than 20% darker than before.
     case NOTHING: return false; //fine no matter what
   }
 }

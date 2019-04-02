@@ -23,6 +23,7 @@ void mqtt_setSystem(System *s) {
 }
 
 void mqtt_cleanup() {
+	mosquitto_loop_stop(mqtt_mosq, false);
 	mosquitto_destroy(mqtt_mosq);
 	mosquitto_lib_cleanup();
 }
@@ -31,6 +32,10 @@ void mqtt_connect(const char *host, int port, int keepAlive) {
 	if (mosquitto_connect(mqtt_mosq, host, port, keepAlive)) {
 		fprintf(stderr, "MQTT connection failed.\n");
 	}
+}
+
+void mqtt_loopStart() {
+	mosquitto_loop_start(mqtt_mosq);
 }
 
 void mqtt_sendMessage(const char *msg) {
