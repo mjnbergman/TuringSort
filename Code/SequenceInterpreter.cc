@@ -36,6 +36,7 @@ void SequenceInterpreter::readSequence(bool sequence[]) {
   if (!sequence[0] && !sequence[1]) {
     int blackContainer = sequence[2] + sequence[3]*2;
     int whiteContainer = sequence[4] + sequence[5]*2;
+    std::cout << "In sorting mode, with containers: " << blackContainer << " and white: " << whiteContainer << std::endl;
     seq = new  SortSequence(whiteContainer, blackContainer);
   }
   //request operation

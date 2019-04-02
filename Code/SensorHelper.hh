@@ -34,9 +34,9 @@ public:
         {
             while (running == true) {
             	sensorLocker.lock();
-            	std::cout << "Before executin measuring func" << std::endl;
+      //      	std::cout << "Before executin measuring func" << std::endl;
                 this->loopFunc();
-                std::cout << "After executing measuring func\n\n";
+      //          std::cout << "After executing measuring func\n\n";
                 sensorLocker.unlock();
             }
         });

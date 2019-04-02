@@ -149,7 +149,7 @@ int main(int argc, char **argv){
 
 	  auto callbackBlack = [] () {
 		  std::cout << "Measures black\n";
-		  GLOBAL_SYSTEM->sensor.port.out.measuresBlack();
+		  GLOBAL_SYSTEM->app.sensor.out.measuresBlack();
 	  };
 
 	// Sensor initialization
@@ -292,6 +292,7 @@ int main(int argc, char **argv){
 				  SortSequence *sort = dynamic_cast<SortSequence *>(seq);
 				  int bucket = sort->getBB();
 				  enqueue(bucket);
+				  std::cout << "Found a black chip!!! Enqueueing in bucket: " << bucket << std::endl;
 			  } else if (type == SortingApplication::OperationMode::type::Request) {
 				  RequestSequence *req = dynamic_cast<RequestSequence *>(seq);
 				  if (req->isWhite()) {

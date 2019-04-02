@@ -29,7 +29,7 @@ void mqtt_cleanup() {
 }
 
 void mqtt_connect(const char *host, int port, int keepAlive) {
-	if (mosquitto_connect(mqtt_mosq, host, port, keepAlive)) {
+	if (mosquitto_connect_async(mqtt_mosq, host, port, keepAlive)) {
 		fprintf(stderr, "MQTT connection failed.\n");
 	}
 }
