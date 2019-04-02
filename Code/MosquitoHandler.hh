@@ -23,6 +23,7 @@ void mqtt_setSystem(System *s) {
 }
 
 void mqtt_cleanup() {
+	std::cout << "mqtt_cleanup" << std::endl;
 	mosquitto_loop_stop(mqtt_mosq, false);
 	mosquitto_destroy(mqtt_mosq);
 	mosquitto_lib_cleanup();
