@@ -65,6 +65,7 @@ void mqtt_available() {
 
 void mqtt_connectCallback(struct mosquitto *mosq, void *userdata, int result) {
 	if (!result) {
+		fprintf(stdout, "MQTT connected\n");
 		mosquitto_subscribe(mosq, NULL, "Bot2_R", 2);
 	} else {
 		fprintf(stderr, "MQTT connection failed.\n");
@@ -88,6 +89,10 @@ void mqtt_messageCallback(struct mosquitto *mosq, void *userdata, const struct m
 	}
 }
 
+void mqtt_subscribeCallback(struct mosquitto *mosq, void *userdata, int mid, int qos_count, const int *granted_qos) {
+	fprintf(stdout, "MQTT has subscribed\n");
+}
+
 void mqtt_init() {
 	mosquitto_lib_init();
 	mqtt_mosq = mosquitto_new(NULL, true, NULL);
@@ -97,6 +102,7 @@ void mqtt_init() {
 	}
 	mosquitto_connect_callback_set(mqtt_mosq, mqtt_connectCallback);
 	mosquitto_message_callback_set(mqtt_mosq, mqtt_messageCallback);
+	mosquitto_subscribe_callback_set(mqtt_mosq, mqtt_subscribeCallback);
 }
 
 
