@@ -139,12 +139,12 @@ int main(int argc, char **argv){
 
 	  auto callbackError = [] () {
 		  std::cout << "Measures error\n";
-		  GLOBAL_SYSTEM->sensor.port.out.measuresError();
+		  GLOBAL_SYSTEM->app.sensor.out.measuresError();
 	  };
 
 	  auto callbackWhite = [] () {
 		  std::cout << "Measures white\n";
-		  GLOBAL_SYSTEM->sensor.port.out.measuresWhite();
+		  GLOBAL_SYSTEM->app.sensor.out.measuresWhite();
 	  };
 
 	  auto callbackBlack = [] () {
