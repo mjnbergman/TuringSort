@@ -10,6 +10,7 @@
 #include "System.hh"
 #include <wiringPi.h>
 #include <mutex>
+#include <cstring>
 #include "SequenceInterpreter.hh"
 #include "MosquitoHandler.hh"
 #include "LDRSensor.hh"
@@ -47,7 +48,7 @@ const double SENSOR_TO_MOTOR3 = 1600; // all in ms
 const double SENSOR_TO_MOTOR4 = 2000;
 
 // The protocol details of the MQTT host
-const char* MQTT_HOST = "tcp://192.168.0.2";
+char* MQTT_HOST = "tcp://192.168.0.2";
 const int MQTT_PORT = 1883;
 const int MQTT_KEEP_ALIVE = 60;
 
@@ -72,29 +73,34 @@ int main(int argc, char **argv){
 	  dzn::illegal_handler illegal_handler;
 
 
+	  std::cout << "WiringPi? :)" << std::endl;
 	  // Setup wiring pi.
 	  wiringPiSetup();
+	  std::cout << "WiringPi!!!" << std::endl;
 
 
 	  // Initialize the main Dezyne System component.
 	  System s(locator.set(runtime).set(illegal_handler));
 
+	  std::cout << "En system!!!" << std::endl;
 
 	  // Initialize MQTT
-//	  mqtt_setSystem(&s);
-//	  mqtt_init();
+	  mqtt_setSystem(&s);
+	  mqtt_init();
 
 	  std::cout << "MQTT Initialized..." << std::endl;
 
 	  TimerHelper mqtt_Threader([](){
-		  std::cout << "In the lambda, before connecting to MQTT..." << std::endl;
-	//	  mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_KEEP_ALIVE);
-		  // mqtt_loopStart();
+		  std::cout << "In the lambda, before connecting to MQTT..." << " met host: " << MQTT_HOST << std::endl;
+		  mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_KEEP_ALIVE);
+		  std::cout << "Past connecting..." << std::endl;
+		  mqtt_loopStart();
+		  std::cout << "Somehow after the loop..." << std::endl;
 	  });
 
-//	  mqtt_Threader.setDelay(100);
+	  mqtt_Threader.setDelay(100);
 	  std::cout << "Before starting MQTT thread..." << std::endl;
-//	  mqtt_Threader.start();
+	  mqtt_Threader.start();
 
 	  // Set references to the global system and SequenceInterpreter
 	  GLOBAL_SYSTEM = &s;
@@ -104,14 +110,20 @@ int main(int argc, char **argv){
 	  char* startSequence;
 
 	  if(argc > 1){
+		 std::cout << "Pre interpreter start..." << std::endl;
 		 INTERPRETER->start();
 	     startSequence = argv[1];
-	     for(int i = 0; i < sizeof(startSequence)/sizeof(char); i++){
-	    	 bool whiteOrBlack = startSequence[i] == 0 ? false : true;
+	     std::cout << "Er zijn: " << std::strlen(argv[1]) << " argumenten!" << std::endl;
+	     for(int i = 0; i < std::strlen(argv[1]); i++){
+	    	 bool whiteOrBlack = argv[1][i] - 48 == 0 ? false : true;
 	    	 INTERPRETER->append(whiteOrBlack);
 	    	 std::cout << "Appending a chip..." << whiteOrBlack << std::endl;
 	      }
+	  }if(argc > 2){
+		  MQTT_HOST = argv[2];
 	  }
+
+	//  delay(100000);
 
 
 /*
@@ -175,17 +187,17 @@ int main(int argc, char **argv){
     // MQTT lambdas
     s.port.out.available = [] () {
     	std::cout << "In lambda MQTT Available call..." << std::endl;
-  //  	mqtt_available();
+    	mqtt_available();
     };
 
     s.port.out.sequenceReceived = [] () {
     	  std::cout << "In lambda MQTT sequenceReceived() call..." << std::endl;
-  //      mqtt_sequenceReceived();
+        mqtt_sequenceReceived();
     };
 
     s.port.out.sendEmergency = [] () {
     	  std::cout << "In lambda MQTT sendEmergency() call..." << std::endl;
-  //      mqtt_sendEmergency();
+        mqtt_sendEmergency();
     };
 
     // enqueueBox1...enqueueBox4 motor lambdas.
@@ -428,7 +440,7 @@ int main(int argc, char **argv){
 	  }
 
 	  // Do some MQTT cleanup
-	//  mqtt_cleanup();
+    mqtt_cleanup();
 	return 0;
 }
 

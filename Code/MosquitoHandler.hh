@@ -41,7 +41,7 @@ void mqtt_loopStart() {
 void mqtt_sendMessage(const char *msg) {
 	mosquitto_publish(mqtt_mosq, NULL, "Bot2_T", strlen(msg), msg, 2, false);
 
-	fprintf(stdout, "Message sent over MQTT: %s\n", msg);
+	fprintf(stderr, "Message sent over MQTT: %s\n", msg);
 }
 
 void mqtt_takeItem() {
@@ -83,14 +83,14 @@ void mqtt_messageCallback(struct mosquitto *mosq, void *userdata, const struct m
 		} else {
 			fprintf(stderr, "No valid function for signal %s\n", (const char *)message->payload);
 		}
-		fprintf(stdout, "Message received over MQTT: %s %s\n", message->topic, (const char *)message->payload);
+		fprintf(stderr, "Message received over MQTT: %s %s\n", message->topic, (const char *)message->payload);
 	} else {
-		fprintf(stdout, "Message received over MQTT: %s (null)\n", message->topic);
+		fprintf(stderr, "Message received over MQTT: %s (null)\n", message->topic);
 	}
 }
 
 void mqtt_subscribeCallback(struct mosquitto *mosq, void *userdata, int mid, int qos_count, const int *granted_qos) {
-	fprintf(stdout, "MQTT has subscribed\n");
+	fprintf(stderr, "MQTT has subscribed\n");
 }
 
 void mqtt_init() {
@@ -100,6 +100,8 @@ void mqtt_init() {
 	if (!mqtt_mosq) {
 		fprintf(stderr, "mosquitto failed to initialise.\n");
 	}
+	std::cout << "MSQTT_CONNECT RETURNS: " << std::endl;
+
 	mosquitto_connect_callback_set(mqtt_mosq, mqtt_connectCallback);
 	mosquitto_message_callback_set(mqtt_mosq, mqtt_messageCallback);
 	mosquitto_subscribe_callback_set(mqtt_mosq, mqtt_subscribeCallback);

@@ -20,9 +20,9 @@ class LDRSensor {
 
         /// PINS ///
 
-        int measureWhitePin = 3;
+        int measureWhitePin = 2;
         int dischargePin = 0; //speeds up discharging process, not necessary though
-        int measureBlackPin = 2;
+        int measureBlackPin = 0;
 
         const int CHARGE_PIN = 3;
         const int DISCHARGE_PIN = 0; //speeds up discharging process, not necessary though
@@ -37,6 +37,10 @@ class LDRSensor {
         /// TIMER ///
         unsigned long startTime = 0;
         unsigned long elapsedTime = 0;
+
+        unsigned long previousEncounter;
+
+        const unsigned long SUBSEQUENCE_DELAY = 500;
 
         /// CALIBRATION VARS ///
         const int SAMPLE_SIZE = 11;

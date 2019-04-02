@@ -228,11 +228,15 @@ void LDRSensor::generateColorEvent(Detected d){
  * DEZYNE EVENT GENERATOR
  */
 void LDRSensor::genWhiteEvent(){
-  if (previousDetected == LDRSensor::Detected::BLACK){ //saw a disk the very previous measure
+  unsigned long curMillis = millis();
+  if (previousDetected == LDRSensor::Detected::WHITE && curMillis - previousEncounter >= SUBSEQUENCE_DELAY){ //saw a disk the very previous measure
       genErrorEvent(DDISK);
       return;
+  }else if(previousDetected == LDRSensor::Detected::WHITE && curMillis - previousEncounter < SUBSEQUENCE_DELAY){
+	  return;
   }
-  previousDetected = LDRSensor::Detected::BLACK;
+  previousEncounter = curMillis;
+  previousDetected = LDRSensor::Detected::WHITE;
   callbackWhite();
   std::cout << "WHITE" << std::endl;
 }
@@ -241,10 +245,15 @@ void LDRSensor::genWhiteEvent(){
  * DEZYNE EVENT GENERATOR
  */
 void LDRSensor::genBlackEvent(){
-  if (previousDetected == LDRSensor::Detected::BLACK){ //saw a disk the very previous measure
-    genErrorEvent(DDISK);
+  unsigned long curMillis = millis();
+  if (previousDetected == LDRSensor::Detected::BLACK && curMillis - previousEncounter >= SUBSEQUENCE_DELAY){//saw a disk the very previous measure
+    previousEncounter = curMillis;
+	genErrorEvent(DDISK);
     return;
+  }else if(previousDetected == LDRSensor::Detected::BLACK && curMillis - previousEncounter < SUBSEQUENCE_DELAY){
+	 return;
   }
+  previousEncounter = curMillis;
   previousDetected = LDRSensor::Detected::BLACK;
   callbackBlack();
   std::cout << "BLACK" << std::endl;
@@ -255,7 +264,7 @@ void LDRSensor::genBlackEvent(){
  */
 void LDRSensor::genNothingEvent(){
   previousDetected = LDRSensor::Detected::NOTHING;
-  std::cout << "NOTHING" << std::endl;
+ // std::cout << "NOTHING" << std::endl;
   //do not need to generate an event for dezyne at the time
 }
 
