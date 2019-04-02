@@ -19,9 +19,9 @@ class LDRSensor {
 
 
         /// PINS ///
-        int chargePin = 3;
+        int measureWhitePin = 3;
         int dischargePin = 0; //speeds up discharging process, not necessary though
-        int measurePin = 2;
+        int measureBlackPin = 2;
 
         /// TIMER ///
         unsigned long startTime = 0;
@@ -39,17 +39,19 @@ class LDRSensor {
         bool secondWhite = true;
         bool secondBlack = true;
 
-        bool detected = false;
+
 
         /// ERROR VARS ///
         int errorCount = 0; //counts measurements that aren't nothing nor whiteish nor blackish
         const int TOLERANCE = 3;
 
         /// ENUMS ///
-        enum Detected {BLACK, WHITE, NOTHING, EXIT};
+        enum Detected {BLACK, WHITE, NOTHING, EXIT, ERROR};
         enum Error {LED, LDR, DDISK};
 
-        void doMeasurement(bool isSetup);
+        Detected previousDetected;
+
+        Detected doMeasurement();
         Detected determineColor();
         void checkResult(Detected d);
         void redoIn(unsigned long ms);

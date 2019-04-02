@@ -11,18 +11,23 @@ void LDRSensor::sensorSetup(){
   //create null hypothesis
 
   //setup charging stuff initially
-  pinMode(chargePin, OUTPUT);
-  digitalWrite(chargePin, LOW);  
+  pinMode(measureWhitePin, INPUT);
+  pinMode(measureBlackPin, INPUT);
+//  digitalWrite(chargePin, LOW);
+  std::cout << "Reached the end of setup...";
   //Serial.begin(9600); // Necessary to print data to serial monitor over USB
 }
 
 void LDRSensor::calibrate(){
+//	sensorSetup();
+/*	std::cout << "Before calibration" << std::endl;
   nullHypothesis = 0;
   //sampleSize = 11;
   unsigned long measurements[11];
   for(int i = 0; i < sampleSize; i++){
     doMeasurement(true); //10 iterations of loop
     measurements[i] = nullHypothesis;
+    std::cout << "After measuring loop: " << i << std::endl;
   }
   
   //time passed to do sampleSize measurements
@@ -32,15 +37,17 @@ void LDRSensor::calibrate(){
 
   std::cout << "ready to start measuring with" << std::endl;
   std::cout << "null:" + nullHypothesis << std::endl;
+*/
+ // delay(2000);
 }
 
 /// MAIN LOOP FUNCTIONS ///
 void LDRSensor::sensorLoop(){
-  doMeasurement(false);
+   this->generateColorEvent(this->doMeasurement());
 }
 
-void LDRSensor::doMeasurement(bool isSetup){
-  digitalWrite(chargePin, HIGH); // Begins charging the capacitor
+LDRSensor::Detected LDRSensor::doMeasurement(){
+/*  digitalWrite(chargePin, HIGH); // Begins charging the capacitor
   startTime = micros();
 
   bool chargeError = chargeCapacitor();
@@ -60,10 +67,33 @@ void LDRSensor::doMeasurement(bool isSetup){
     checkResult(d);
   }
 
-  stopDischargingCapacitor();
+  stopDischargingCapacitor(); */
+	/*pinMode(measurePin, OUTPUT);
+	digitalWrite(measurePin, LOW);
+	delay(1);
+	pinMode(measurePin, INPUT);
 
+	int count = 0;
+
+	while(digitalRead(measurePin) == LOW){
+		count += 1;
+	}
+
+	nullHypothesis = count;
+*/
+
+
+	if(digitalRead(measureBlackPin) == HIGH && digitalRead(measureWhitePin) == LOW){
+		return LDRSensor::Detected::BLACK;
+	}else if(digitalRead(measureWhitePin) == HIGH && digitalRead(measureBlackPin) == LOW){
+		return LDRSensor::Detected::WHITE;
+	}else if(digitalRead(measureWhitePin) == HIGH && digitalRead(measureBlackPin) == HIGH){
+		return LDRSensor::Detected::ERROR;
+	}else{
+		return LDRSensor::Detected::NOTHING;
+	}
 }
-
+/*
 LDRSensor::Detected LDRSensor::determineColor(){
   if(elapsedTime < 100){
     //happens when capacitor was not charged but still got here in execution. Shouldn't really happen, but in case it does...
@@ -116,16 +146,18 @@ void LDRSensor::checkResult(Detected d){
     generateColorEvent(d);
   }  
 }
+*/
 
 /**
  * Prepares for doing another measurement after (ms). 
  * Cannot use delay because capacitor circuit must be prepared
- */
+
 void LDRSensor::redoIn(unsigned long ms) {
   long time_1 = millis();
   while (digitalRead(measurePin) == HIGH){
     bool error = LDRErrorGuard(time_1);
       if (error) {
+
         genErrorEvent(LDR);
         break;
       } //discharge
@@ -139,7 +171,9 @@ bool LDRSensor::chargeCapacitor(){ //returns wether or not an error occured
   while (digitalRead(measurePin) == LOW) {
     //wait for the capacitor to charge the pin to HIGH
     bool error = LDRErrorGuard(startTime);
+    std::cout << "Charging since..." << startTime << " for " << (micros() - startTime) << " micros!" << std::endl;
     if (error) {
+    	 // TODO INSERT DEBUGGING COUT HERE
       genErrorEvent(LDR);
       stopChargingCapacitor();
       stopDischargingCapacitor();
@@ -148,7 +182,8 @@ bool LDRSensor::chargeCapacitor(){ //returns wether or not an error occured
   }
   return false;
 }
-
+*/
+/*
 void LDRSensor::stopChargingCapacitor(){
   digitalWrite(chargePin, LOW); // Stops charging capacitor
   pinMode(dischargePin, OUTPUT); 
@@ -168,7 +203,7 @@ void LDRSensor::stopDischargingCapacitor(){
   }
   pinMode(dischargePin, INPUT); // Prevents capacitor from discharging
 }
-
+*/
 /// DEZYNE EVENT GENERATORS ///
 void LDRSensor::generateColorEvent(Detected d){
   switch(d){
@@ -178,6 +213,8 @@ void LDRSensor::generateColorEvent(Detected d){
         genBlackEvent(); delay(750); break;
       case NOTHING: 
         genNothingEvent(); break;
+      case ERROR:
+    	genErrorEvent(LDRSensor::Error::LDR); break;
     }  
 }
 
@@ -185,11 +222,11 @@ void LDRSensor::generateColorEvent(Detected d){
  * DEZYNE EVENT GENERATOR
  */
 void LDRSensor::genWhiteEvent(){
-  if (detected){ //saw a disk the very previous measure
+  if (previousDetected == LDRSensor::Detected::BLACK){ //saw a disk the very previous measure
       genErrorEvent(DDISK);
       return;
   }
-  detected = true;
+  previousDetected = LDRSensor::Detected::BLACK;
   callbackWhite();
   std::cout << "WHITE" << std::endl;
 }
@@ -198,11 +235,11 @@ void LDRSensor::genWhiteEvent(){
  * DEZYNE EVENT GENERATOR
  */
 void LDRSensor::genBlackEvent(){
-  if (detected){ //saw a disk the very previous measure
+  if (previousDetected == LDRSensor::Detected::BLACK){ //saw a disk the very previous measure
     genErrorEvent(DDISK);
     return;
   }
-  detected = true;
+  previousDetected = LDRSensor::Detected::BLACK;
   callbackBlack();
   std::cout << "BLACK" << std::endl;
 }
@@ -211,7 +248,7 @@ void LDRSensor::genBlackEvent(){
  * DEZYNE EVENT GENERATOR
  */
 void LDRSensor::genNothingEvent(){
-  detected = false;
+  previousDetected = LDRSensor::Detected::NOTHING;
   std::cout << "NOTHING" << std::endl;
   //do not need to generate an event for dezyne at the time
 }
@@ -232,14 +269,14 @@ void LDRSensor::genErrorEvent(Error e){
 /// ERROR CHECKERS ///
 /**
  * Compare started time with current time (micros) 
- */
-bool LDRSensor::LDRErrorGuard(unsigned long started){
-  return (micros() - started) > 1000000L; //true iff has been 1 second since started. LDR hasn't measured a thing. error!
-}
 
+bool LDRSensor::LDRErrorGuard(unsigned long started){
+  return (micros() - started) > 10000000L; //true iff has been 1 second since started. LDR hasn't measured a thing. error!
+}
+*/
 /**
  * Returns wether or not a led mightve turned off
- */
+
 bool LDRSensor::checkLEDs(unsigned long colorValue, Detected d){
   switch(d){
     case WHITE: return (colorValue > 1.2 * whiteish || colorValue < 0.8 * whiteish); //color is more than 20% darker than before.
@@ -247,6 +284,7 @@ bool LDRSensor::checkLEDs(unsigned long colorValue, Detected d){
     case NOTHING: return false; //fine no matter what
   }
 }
+*/
 
 /// MISC FUNCTIONS ///
 void LDRSensor::sort(unsigned long arr[], int n){

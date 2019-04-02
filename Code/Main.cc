@@ -62,7 +62,9 @@ std::queue<TimerHelper*> boxQueue;
 // A mutex used for locking the enqueueBox1...enqueueBox4 function lambdas.
 std::mutex enqueu1Locker;
 
-int main(){
+int main(int argc, char **argv){
+
+
 
 	  // Dezyne initialization.
 	  dzn::locator locator;
@@ -82,18 +84,37 @@ int main(){
 //	  mqtt_setSystem(&s);
 //	  mqtt_init();
 
+	  std::cout << "MQTT Initialized..." << std::endl;
+
 	  TimerHelper mqtt_Threader([](){
+		  std::cout << "In the lambda, before connecting to MQTT..." << std::endl;
 	//	  mqtt_connect(MQTT_HOST, MQTT_PORT, MQTT_KEEP_ALIVE);
+		  // mqtt_loopStart();
 	  });
 
 //	  mqtt_Threader.setDelay(100);
+	  std::cout << "Before starting MQTT thread..." << std::endl;
 //	  mqtt_Threader.start();
 
 	  // Set references to the global system and SequenceInterpreter
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
 
-	  INTERPRETER->start();
+
+	  char* startSequence;
+
+	  if(argc > 1){
+		 INTERPRETER->start();
+	     startSequence = argv[1];
+	     for(int i = 0; i < sizeof(startSequence)/sizeof(char); i++){
+	    	 bool whiteOrBlack = startSequence[i] == 0 ? false : true;
+	    	 INTERPRETER->append(whiteOrBlack);
+	    	 std::cout << "Appending a chip..." << whiteOrBlack << std::endl;
+	      }
+	  }
+
+
+/*
 	  INTERPRETER->append(false);
 	  INTERPRETER->append(false);
 	  INTERPRETER->append(false);
@@ -102,7 +123,7 @@ int main(){
 	  INTERPRETER->append(false);
 	  INTERPRETER->append(false);
 	  INTERPRETER->append(false);
-
+*/
 
 	  auto callbackError = [] () {
 		  std::cout << "Measures error\n";
@@ -147,16 +168,23 @@ int main(){
     s.app.box3Time = SENSOR_TO_MOTOR3;
     s.app.box4Time = SENSOR_TO_MOTOR4;
 
+    s.port.in.startSequence = [] () {
+    	INTERPRETER->start();
+    };
+
     // MQTT lambdas
     s.port.out.available = [] () {
+    	std::cout << "In lambda MQTT Available call..." << std::endl;
   //  	mqtt_available();
     };
 
     s.port.out.sequenceReceived = [] () {
+    	  std::cout << "In lambda MQTT sequenceReceived() call..." << std::endl;
   //      mqtt_sequenceReceived();
     };
 
     s.port.out.sendEmergency = [] () {
+    	  std::cout << "In lambda MQTT sendEmergency() call..." << std::endl;
   //      mqtt_sendEmergency();
     };
 
@@ -229,12 +257,13 @@ int main(){
 		  auto loopFunc = [] () {
 			  SENSOR->sensorLoop();
 		  };
+	//	  SENSOR->sensorSetup();
+		  SENSOR->calibrate();
 		  S1 = new SensorHelper(loopFunc);
 		  S1->start();
 	  };
 
 	  s.app.sensor.in.calibrate = [] () {
-		  SENSOR->calibrate();
 	  };
 
 	  s.app.sensor.in.turnOff = [] () {
@@ -367,7 +396,7 @@ int main(){
 	  	  };
 
 	 s.app.sensor.in.turnOn();
-	 s.app.sensor.in.calibrate();
+
   	 std::cout << "Before belt en ik leef";
      s.belt.port.in.setCounterClockwise();
   	 // Turn on the conveyer belt, this should always be running
