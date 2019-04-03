@@ -15,6 +15,7 @@
 #include "MosquitoHandler.hh"
 #include "LDRSensor.hh"
 #include "SensorHelper.hh"
+#include "QueueElement.hh"
 
 // A global reference to the Dezyne System, needed to reference the Dezyne system in lambdas.
 System* GLOBAL_SYSTEM;
@@ -42,10 +43,11 @@ const int dataPin = 12, latchPin = 13, clockPin = 14;
 // Constant durations we measured and determined the values of experimentally, used
 // to determine the amount of time timers should wait when activating motors and other things.
 const double MOTOR_HOLD_DURATION = 200; // ms
-const double SENSOR_TO_MOTOR1 = 1000;
-const double SENSOR_TO_MOTOR2 = 1200;
-const double SENSOR_TO_MOTOR3 = 1600; // all in ms
-const double SENSOR_TO_MOTOR4 = 2000;
+const double MOTOR_BETWEEN_DELAY = 500;
+const double SENSOR_TO_MOTOR1 = 900;
+const double SENSOR_TO_MOTOR2 = 2250;
+const double SENSOR_TO_MOTOR3 = 3200; // all in ms
+const double SENSOR_TO_MOTOR4 = 4800;
 
 // The protocol details of the MQTT host
 char* MQTT_HOST = "tcp://192.168.0.2";
@@ -56,9 +58,27 @@ const int MQTT_KEEP_ALIVE = 60;
 void enqueue(int bucket);
 
 const int WASTE_BUCKET = 3;
-
 // The queue that motor-turn requests are placed in when calling enqueueBox1...enqueueBox4.
-std::queue<TimerHelper*> boxQueue;
+std::priority_queue <QueueElement, vector<QueueElement>, QueueCompare > boxQueue;
+
+auto activateMotor1LambdaDown = [] () {
+		GLOBAL_SYSTEM->pusherSystem.p1.port.in.down();
+};
+auto activateMotor2LambdaDown = [] () {
+		GLOBAL_SYSTEM->pusherSystem.p2.port.in.down();
+};
+auto activateMotor3LambdaDown = [] () {
+		GLOBAL_SYSTEM->pusherSystem.p3.port.in.down();
+};
+auto activateMotor1LambdaUp = [] () {
+		GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+};
+auto activateMotor2LambdaUp = [] () {
+		GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+};
+auto activateMotor3LambdaUp = [] () {
+		GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+};
 
 // A mutex used for locking the enqueueBox1...enqueueBox4 function lambdas.
 std::mutex enqueu1Locker;
@@ -200,69 +220,96 @@ int main(int argc, char **argv){
         mqtt_sendEmergency();
     };
 
+
+
+
     // enqueueBox1...enqueueBox4 motor lambdas.
 	  s.pusherSystem.port.in.enqueueBox1 = [] (double ms){
-		  auto upDownDelayLambda = [] (){
-			// When this lambda is executed, move the motors in such a way that a chip passing through
-			// will land in box 1.
-			enqueu1Locker.lock();
-			  std::cout << "Start van de lambda!!!" << std::endl;
 
-			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.down();
-			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
-			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
-			  std::cout << "Done with executing enqueueBox1!!!" << std::endl;
-			  enqueu1Locker.unlock();
-			  //std::cout << "Test in de lambda" << std::endl;
-		  };
-		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
-		  t1->setDelay((int)ms);
-		  boxQueue.push(t1);
+	//	  GLOBAL_SYSTEM->pusherSystem.p1.port.in.down();
+	//	  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+	//	  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+
+
+
+
+		  TimerHelper* t1 = new TimerHelper(activateMotor1LambdaDown);
+
+//		  t1->setDelay(SENSOR_TO_MOTOR1);
+		  QueueElement qe;
+		  qe.th = t1;
+		  qe.timeStamp = SENSOR_TO_MOTOR1 + millis();
+		  boxQueue.push(qe);
+
+		  std::cout << "De timestamp is: " << qe.timeStamp << " en het is nu: " << millis() << std::endl;
 		  //std::cout << "Test enqueue..." << std::endl;
 	  };
 
 	  s.pusherSystem.port.in.enqueueBox2 = [] (double ms){
-		  auto upDownDelayLambda = [] (){
-				// When this lambda is executed, move the motors in such a way that a chip passing through
-				// will land in box 2.
-			  enqueu1Locker.lock();
-			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
-			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.down();
-			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
-			  enqueu1Locker.unlock();
-		  };
-		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
-		  t1->setDelay((int)ms);
-		  boxQueue.push(t1);
+
+//			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+//			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.down();
+//			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+//			  enqueu1Locker.unlock();
+
+			  TimerHelper* t1 = new TimerHelper(activateMotor1LambdaUp);
+			  TimerHelper* t2 = new TimerHelper(activateMotor2LambdaDown);
+
+			  QueueElement qe;
+			  qe.th = t1;
+			  qe.timeStamp = SENSOR_TO_MOTOR1 + millis();
+			  boxQueue.push(qe);
+			  QueueElement qe2;
+			  qe2.th = t2;
+			  qe2.timeStamp = SENSOR_TO_MOTOR2 + millis();
+			  boxQueue.push(qe2);
 	  };
 
 	  s.pusherSystem.port.in.enqueueBox3 = [] (double ms){
-		  auto upDownDelayLambda = [] (){
-				// When this lambda is executed, move the motors in such a way that a chip passing through
-				// will land in box 1.
-			  enqueu1Locker.lock();
-			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
-			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
-			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.down();
-			  enqueu1Locker.unlock();
-		  };
-		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
-		  t1->setDelay((int)ms);
-		  boxQueue.push(t1);
+
+//			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+//			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+//			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.down();
+//			  enqueu1Locker.unlock();
+			  TimerHelper* t1 = new TimerHelper(activateMotor1LambdaUp);
+			  TimerHelper* t2 = new TimerHelper(activateMotor2LambdaUp);
+			  TimerHelper* t3 = new TimerHelper(activateMotor3LambdaDown);
+
+			  QueueElement qe;
+			  qe.th = t1;
+			  qe.timeStamp = SENSOR_TO_MOTOR1 + millis();
+			  boxQueue.push(qe);
+			  QueueElement qe2;
+			  qe2.th = t2;
+			  qe2.timeStamp = SENSOR_TO_MOTOR2 + millis();
+			  boxQueue.push(qe2);
+			  QueueElement qe3;
+			  qe3.th = t3;
+			  qe3.timeStamp = SENSOR_TO_MOTOR3 + millis();
+			  boxQueue.push(qe3);
 	  };
 	  s.pusherSystem.port.in.enqueueBox4 = [] (double ms){
-		  auto upDownDelayLambda = [] (){
-				// When this lambda is executed, move the motors in such a way that a chip passing through
-				// will land in box 4.
-			  enqueu1Locker.lock();
-			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
-			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
-			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
-			  enqueu1Locker.unlock();
-		  };
-		  TimerHelper* t1 = new TimerHelper(upDownDelayLambda);
-		  t1->setDelay((int)ms);
-		  boxQueue.push(t1);
+
+//			  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
+//			  GLOBAL_SYSTEM->pusherSystem.p2.port.in.up();
+//			  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
+
+		  TimerHelper* t1 = new TimerHelper(activateMotor1LambdaUp);
+		  TimerHelper* t2 = new TimerHelper(activateMotor2LambdaUp);
+		  TimerHelper* t3 = new TimerHelper(activateMotor3LambdaUp);
+
+		  QueueElement qe;
+		  qe.th = t1;
+		  qe.timeStamp = SENSOR_TO_MOTOR1 + millis();
+		  boxQueue.push(qe);
+		  QueueElement qe2;
+		  qe2.th = t2;
+		  qe2.timeStamp = SENSOR_TO_MOTOR2 + millis();
+		  boxQueue.push(qe2);
+		  QueueElement qe3;
+		  qe3.th = t3;
+		  qe3.timeStamp = SENSOR_TO_MOTOR3 + millis();
+		  boxQueue.push(qe3);
 	  };
 
 	  s.app.sensor.in.turnOn = [] (){
@@ -441,7 +488,11 @@ int main(int argc, char **argv){
 //	  s.pusherSystem.p2.port.in.up();
 //	  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
 	  std::cout << " \n after belt en ik leef";
-	  delay(1000);
+	//  delay(1000);
+	//  s.pusherSystem.port.in.enqueueBox1(SENSOR_TO_MOTOR1);
+	//  s.pusherSystem.port.in.enqueueBox2(SENSOR_TO_MOTOR2);
+	//  s.pusherSystem.port.in.enqueueBox3(SENSOR_TO_MOTOR3);
+	//  s.pusherSystem.port.in.enqueueBox4(SENSOR_TO_MOTOR4);
 
 	  // A permanent loop so the system will always continue running unless the power is taken off
 	  // or the execution of the application terminated.
@@ -454,10 +505,14 @@ int main(int argc, char **argv){
 		  // in the corresponding box.
 
 		  if(!boxQueue.empty()){
-			  boxQueue.front()->start();
+			  std::cout << "De queue is niet empty, dequeue de top..." << std::endl;
+			  QueueElement curQueue = boxQueue.top();
+			  curQueue.th->setDelay(curQueue.timeStamp - millis());
+			  std::cout << "De delay is: " << curQueue.th->getDelay().count() << std::endl;
+			  curQueue.th->start();
 			  boxQueue.pop();
 		  }
-		  delay(50);
+//		  delay(MOTOR_BETWEEN_DELAY);
 
 		 // std::cout << "Het komt voorbij de eerste enqueue execution!" << std::endl;
 	  }
@@ -470,6 +525,7 @@ int main(int argc, char **argv){
 // The enqueue function, just a wrapper for the specific enqueueBox1...enqueueBox4 calls allowing you to
 // pick one of them based on the box number programmatically.
 void enqueue(int bucket) {
+	std::cout << "Enqueuing to bucket: " << bucket << std::endl;
 	if (bucket == 0) {
 		GLOBAL_SYSTEM->pusherSystem.port.in.enqueueBox1(SENSOR_TO_MOTOR1);
 	} else if (bucket == 1) {

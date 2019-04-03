@@ -60,6 +60,9 @@ public:
 		  this->delayTime = ms1;
 		  std::cout << "De output is: " << this->delayTime.count() << std::endl;
     }
+    std::chrono::milliseconds getDelay(){
+    	return this->delayTime;
+    }
 };
 
 
