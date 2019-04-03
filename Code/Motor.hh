@@ -34,29 +34,31 @@ public:
     };
     // Turn the motor clockwise, off and counterclockwise respectively.
     void port_turnClockwise (){
+    	std::cout << "Turning motor: " << this->motorPin << " down!" << std::endl;
     	turnMotor(false);
     }
     void port_turnOff (){
     	stopMotor();
     }
     void port_turnCounterClockwise (){
+    	std::cout << "Turning motor: " << this->motorPin << " up!" << std::endl;
     	turnMotor(true);
     }
 
     //writes the motorBitsToSend to the shift register for motor control
     void registerWrite() {
-      std::cout << "Inside registerWrite()" << std::endl;
+  //    std::cout << "Inside registerWrite()" << std::endl;
       //turn off the output so the pins don't light up while the bits are being shifted
       digitalWrite(latchPin, LOW);
-      std::cout << "Past the latchPin toggle! op " << this->latchPin << std::endl;
+  //    std::cout << "Past the latchPin toggle! op " << this->latchPin << std::endl;
       //delay(50);
       //shifts the previous bits out and writes bitsToSend (most significant bit first)
       shiftOut(dataPin, clockPin, MSBFIRST, Motor::motorBitsToSend);
-      std::cout << "Past the shiftOut statement! Data en clock: " << this->dataPin << ", " << this->clockPin << std::endl;
+  //    std::cout << "Past the shiftOut statement! Data en clock: " << this->dataPin << ", " << this->clockPin << std::endl;
       //delay(50);
       //turn on the output again
       digitalWrite(latchPin, HIGH);
-      std::cout << "Past the second latchPin toggle! motorPin: " << this->motorPin << std::endl;
+  //    std::cout << "Past the second latchPin toggle! motorPin: " << this->motorPin << std::endl;
     }
 
     //turns a motor
