@@ -119,7 +119,7 @@ component ConveyerBeltControl {
 		[state.On] {
 			on port.setClockwise(): illegal;
 			on port.setCounterClockwise(): illegal;
-			on port.turnOn(): illegal;
+			on port.turnOn(): {}
 			on port.turnOff(): {motor.turnOff(); state = iConveyerBelt.State.Off;}
 		}
 		
