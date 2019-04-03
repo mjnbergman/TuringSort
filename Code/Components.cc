@@ -252,7 +252,7 @@ void ConveyerBeltControl::port_turnOn()
     state = ::iConveyerBelt::State::On;
     this->motor.in.turnCounterClockwise();
   }
-  else if ((state == ::iConveyerBelt::State::On && true)) dzn_locator.get<dzn::illegal_handler>().illegal();
+  else if ((state == ::iConveyerBelt::State::On && true)) true;
   else if ((!((state == ::iConveyerBelt::State::On && true)) && (!((state == ::iConveyerBelt::State::Off && (direction == ::iConveyerBelt::Direction::CounterClockwise && true))) && (!((state == ::iConveyerBelt::State::Off && (direction == ::iConveyerBelt::Direction::Clockwise && true))) && true)))) dzn_locator.get<dzn::illegal_handler>().illegal();
   else dzn_locator.get<dzn::illegal_handler>().illegal();
 
