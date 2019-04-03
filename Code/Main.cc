@@ -281,6 +281,28 @@ int main(int argc, char **argv){
 	  s.app.sensor.in.turnOff = [] () {
 		  S1->stop();
 	  };
+
+	  s.sequence.port.in.appendBlack = [] () {
+		  bool done = INTERPRETER->append(false);
+		  if (done) {
+			  GLOBAL_SYSTEM->sequence.port.out.readSequence();
+		  }
+	  };
+
+	  s.sequence.port.in.appendWhite = [] () {
+		  bool done = INTERPRETER->append(true);
+		  if (done) {
+			  GLOBAL_SYSTEM->sequence.port.out.readSequence();
+		  }
+	  };
+
+	  s.sequence.port.in.startSequence = [] () {
+		  INTERPRETER->start();
+	  };
+
+	  s.sequence.port.in.cancelSequence = [] () {
+		  INTERPRETER->cancel();
+	  };
   
 	  // Sensor lambdas
 	  s.app.sensor.out.measuresBlack = [] {
