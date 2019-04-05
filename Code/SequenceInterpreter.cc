@@ -48,7 +48,7 @@ void SequenceInterpreter::readSequence(bool sequence[]) {
   }
   //fibonacci operation
   else if(sequence[0] && !sequence[1]) {
-    int amount = sequence[2] + sequence[3]*2 + sequence[4]*4 + 1;
+    int amount = sequence[2] + sequence[3]*2 + sequence[4]*4;
     seq = new FibonacciSequence(amount);
   }
 };
