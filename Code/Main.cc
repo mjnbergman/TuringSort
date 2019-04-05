@@ -17,6 +17,12 @@
 #include "SensorHelper.hh"
 #include "QueueElement.hh"
 
+#define yeet std::cout
+#define YEET std::endl;
+
+// Comment to force recompile
+int p = 1;
+
 // A global reference to the Dezyne System, needed to reference the Dezyne system in lambdas.
 System* GLOBAL_SYSTEM;
 
@@ -220,6 +226,13 @@ int main(int argc, char **argv){
         mqtt_sendEmergency();
     };
 
+    s.port.in.reboot = [] () {
+   	 GLOBAL_SYSTEM->pusherSystem.m1.port_turnCounterClockwise();
+   	 GLOBAL_SYSTEM->pusherSystem.m2.port_turnCounterClockwise();
+   	 GLOBAL_SYSTEM->pusherSystem.m3.port_turnCounterClockwise();
+   	 delay(500);
+    };
+
 
 
 
@@ -377,6 +390,7 @@ int main(int argc, char **argv){
 					  }
 				  }
 			  } else if (type == SortingApplication::OperationMode::type::Fibonacci) {
+				  yeet << "Measured black and in fibonacci" << YEET;
 				  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(seq);
 				  int n = fib->getN();
 				  int f = FibonacciSequence::getFibonacci(n);
@@ -439,6 +453,7 @@ int main(int argc, char **argv){
 						  enqueue(WASTE_BUCKET);
 					  }
 				  } else if (type == SortingApplication::OperationMode::type::Fibonacci) {
+					  yeet << "Measured white and entering fibonacci" << YEET;
 					  FibonacciSequence *fib = dynamic_cast<FibonacciSequence *>(seq);
 					  int n = fib->getN();
 					  int f = FibonacciSequence::getFibonacci(n);
@@ -478,6 +493,11 @@ int main(int argc, char **argv){
 	  	  };
 
 	 s.app.sensor.in.turnOn();
+	 s.pusherSystem.m1.port_turnCounterClockwise();
+	 s.pusherSystem.m2.port_turnCounterClockwise();
+	 s.pusherSystem.m3.port_turnCounterClockwise();
+
+	 delay(500);
 
   	 std::cout << "Before belt en ik leef";
      s.belt.port.in.setCounterClockwise();
