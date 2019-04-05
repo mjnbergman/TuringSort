@@ -95,7 +95,7 @@ auto activateMotor3LambdaUp = [] () {
 
 
 BeltButton* BELT_SENSE_BUTTON;
-PusherButton* pButtons;
+// PusherButton* pButtons;
 
 
 // A mutex used for locking the enqueueBox1...enqueueBox4 function lambdas.
@@ -128,10 +128,10 @@ int main(int argc, char **argv){
 
 	  std::cout << "MQTT Initialized..." << std::endl;
 
-	  BELT_SENSE_BUTTON = new BeltButton(BELT_BUTTON_PIN, [] () {
-		  yeet << "De belt runt niet meer " << YEET;
-	  });
-	   BELT_SENSE_BUTTON->start();
+	//  BELT_SENSE_BUTTON = new BeltButton(BELT_BUTTON_PIN, [] () {
+	//	  yeet << "De belt runt niet meer " << YEET;
+	//  });
+	//   BELT_SENSE_BUTTON->start();
 
 	  TimerHelper mqtt_Threader([](){
 		  std::cout << "In the lambda, before connecting to MQTT..." << " met host: " << MQTT_HOST << std::endl;
@@ -148,7 +148,7 @@ int main(int argc, char **argv){
 	  // Set references to the global system and SequenceInterpreter
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
-
+/*
 	  pButtons[0] = new PusherButton(15, [] () {
 		  std::cout << "Gate 0 not working" << std::endl;
 	  });
@@ -157,7 +157,7 @@ int main(int argc, char **argv){
 	  });
 	  pButtons[2] = new PusherButton(1, [] () {
 		  std::cout << "Gate 2 not working" << std::endl;
-	  });
+	  }); */
 
 	  char* startSequence;
 
@@ -528,14 +528,13 @@ int main(int argc, char **argv){
 	  	  };
 
 	 s.app.sensor.in.turnOn();
-	 s.pusherSystem.m1.port_turnClockwise();
-	 s.pusherSystem.m2.port_turnClockwise();
-	 s.pusherSystem.m3.port_turnClockwise();
-	 pButton[0]
+	 s.pusherSystem.m1.port_turnCounterClockwise();
+	 s.pusherSystem.m2.port_turnCounterClockwise();
+	 s.pusherSystem.m3.port_turnCounterClockwise();
 	 delay(500);
 
 	 mqtt_available();
-  	 std::cout << "Before belt en ik leef";
+  	// std::cout << "Before belt en ik leef";
      s.belt.port.in.setCounterClockwise();
   	 // Turn on the conveyer belt, this should always be running
 	  s.belt.port.in.turnOn();
@@ -543,7 +542,7 @@ int main(int argc, char **argv){
 //	  GLOBAL_SYSTEM->pusherSystem.p1.port.in.up();
 //	  s.pusherSystem.p2.port.in.up();
 //	  GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
-	  std::cout << " \n after belt en ik leef";
+	//  std::cout << " \n after belt en ik leef";
 	//  delay(1000);
 	//  s.pusherSystem.port.in.enqueueBox1(SENSOR_TO_MOTOR1);
 	//  s.pusherSystem.port.in.enqueueBox2(SENSOR_TO_MOTOR2);

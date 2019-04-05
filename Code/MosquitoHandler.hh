@@ -67,7 +67,7 @@ void mqtt_available() {
 void mqtt_connectCallback(struct mosquitto *mosq, void *userdata, int result) {
         if (!result) {
                 std::cout << "MQTT connected (callback)." << std::endl;
-                mosquitto_subscribe(mosq, NULL, "Bot2_R", 2);
+                mosquitto_subscribe(mosq, NULL, "Bot2_R", 1);
         } else {
                 std::cerr << "MQTT connection failed (callback)." << std::endl;
         }
