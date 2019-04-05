@@ -20,7 +20,7 @@ class BeltButton
     thread th;
     bool running = false;
     int inputPin; //set this equal to the correct pin
-    const int maxDelay = 750;
+    const int MAX_DELAY = 750;
     long currentMillis = 0;
     long oldMilis = 0;
     std::function<void(void)> errorFunc;
@@ -37,14 +37,14 @@ public:
         {
             while (running == true) {
               currentMillis = millis();
-              if ((currentMillis - oldMillis) >= maxDelay) {
+              if ((currentMillis - oldMillis) >= MAX_DELAY) {
                 errorFunc();
               }
               if (digitalRead(inputPin) == HIGH) {
                 oldMillis = currentMillis;
                 while(digitalRead(inputPin) == HIGH) {
                   currentMillis = millis();
-                  if ((currentMillis - oldMillis) >= maxDelay) {
+                  if ((currentMillis - oldMillis) >= MAX_DELAY) {
                     errorFunc();
                   }
                 }
@@ -52,8 +52,6 @@ public:
               }
             }
         });
-
-// [*]
         th.join();
     }
 
