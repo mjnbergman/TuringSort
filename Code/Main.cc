@@ -12,6 +12,7 @@
 #include <mutex>
 #include <cstring>
 #include "SequenceInterpreter.hh"
+#include "PusherButton.hh"
 #include "BeltButton.hh"
 #include "MosquitoHandler.hh"
 #include "LDRSensor.hh"
@@ -64,6 +65,8 @@ char* MQTT_HOST = "tcp://192.168.0.2";
 const int MQTT_PORT = 1883;
 const int MQTT_KEEP_ALIVE = 60;
 
+const int BELT_BUTTON_PIN = 30;
+
 // A pre-declaration of the enqueue function.
 void enqueue(int bucket);
 
@@ -92,6 +95,8 @@ auto activateMotor3LambdaUp = [] () {
 
 
 BeltButton* BELT_SENSE_BUTTON;
+PusherButton* pButtons;
+
 
 // A mutex used for locking the enqueueBox1...enqueueBox4 function lambdas.
 std::mutex enqueu1Locker;
@@ -123,10 +128,10 @@ int main(int argc, char **argv){
 
 	  std::cout << "MQTT Initialized..." << std::endl;
 
-	//  BELT_SENSE_BUTTON = new BeltButton([] () {
-		//  yeet << "De belt runt niet meer " << YEET;
-	  //});
-	  // BELT_SENSE_BUTTON->start();
+	  BELT_SENSE_BUTTON = new BeltButton(BELT_BUTTON_PIN, [] () {
+		  yeet << "De belt runt niet meer " << YEET;
+	  });
+	   BELT_SENSE_BUTTON->start();
 
 	  TimerHelper mqtt_Threader([](){
 		  std::cout << "In the lambda, before connecting to MQTT..." << " met host: " << MQTT_HOST << std::endl;
@@ -144,6 +149,15 @@ int main(int argc, char **argv){
 	  GLOBAL_SYSTEM = &s;
 	  INTERPRETER = new SequenceInterpreter();
 
+	  pButtons[0] = new PusherButton(15, [] () {
+		  std::cout << "Gate 0 not working" << std::endl;
+	  });
+	  pButtons[1] = new PusherButton(16, [] () {
+		  std::cout << "Gate 1 not working" << std::endl;
+	  });
+	  pButtons[2] = new PusherButton(1, [] () {
+		  std::cout << "Gate 2 not working" << std::endl;
+	  });
 
 	  char* startSequence;
 
@@ -181,7 +195,7 @@ int main(int argc, char **argv){
 		  GLOBAL_SYSTEM->app.sensor.out.measuresError();
 	//	  exit(EXIT_FAILURE);
 		  if(MQTT_INIT){
-			  mqtt_sendEmergency();
+	//		  mqtt_sendEmergency();
 		  }
 	  };
 
@@ -226,6 +240,7 @@ int main(int argc, char **argv){
 
     s.port.in.startSequence = [] () {
     	INTERPRETER->start();
+    	std::cout << "startlamba sequence " << std::endl;
     };
 
     // MQTT lambdas
@@ -516,7 +531,7 @@ int main(int argc, char **argv){
 	 s.pusherSystem.m1.port_turnClockwise();
 	 s.pusherSystem.m2.port_turnClockwise();
 	 s.pusherSystem.m3.port_turnClockwise();
-
+	 pButton[0]
 	 delay(500);
 
 	 mqtt_available();

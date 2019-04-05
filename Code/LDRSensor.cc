@@ -90,12 +90,20 @@ void LDRSensor::doMeasurement(bool isSetup){
 
 
 	if(digitalRead(measureBlackPin) == HIGH && digitalRead(measureWhitePin) == LOW){
+		errorCounter = 0;
 		return LDRSensor::Detected::BLACK;
 	}else if(digitalRead(measureWhitePin) == HIGH && digitalRead(measureBlackPin) == LOW){
+		errorCounter = 0;
 		return LDRSensor::Detected::WHITE;
 	}else if(digitalRead(measureWhitePin) == HIGH && digitalRead(measureBlackPin) == HIGH){
-		return LDRSensor::Detected::ERROR;
+		errorCounter++;
+		if (errorCounter > 3){
+			return LDRSensor::Detected::ERROR;
+		} else {
+			return LDRSensor::Detected::NOTHING;
+		}
 	}else{
+		errorCounter = 0;
 		return LDRSensor::Detected::NOTHING;
 	}
 }

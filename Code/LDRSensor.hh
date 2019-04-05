@@ -24,6 +24,8 @@ class LDRSensor {
         int dischargePin = 0; //speeds up discharging process, not necessary though
         int measureBlackPin = 0;
 
+        int errorCounter = 0;
+
         const int CHARGE_PIN = 3;
         const int DISCHARGE_PIN = 0; //speeds up discharging process, not necessary though
         const int MEASURE_PIN = 2;
