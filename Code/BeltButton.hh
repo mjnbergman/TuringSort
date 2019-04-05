@@ -39,6 +39,7 @@ public:
               currentMillis = millis();
               if ((currentMillis - oldMillis) >= MAX_DELAY) {
                 errorFunc();
+                running = false;
               }
               if (digitalRead(inputPin) == HIGH) {
                 oldMillis = currentMillis;
@@ -46,6 +47,7 @@ public:
                   currentMillis = millis();
                   if ((currentMillis - oldMillis) >= MAX_DELAY) {
                     errorFunc();
+                    running = false;
                   }
                 }
                 oldMillis = currentMillis;
