@@ -47,7 +47,7 @@ public:
 
     //writes the motorBitsToSend to the shift register for motor control
     void registerWrite() {
-  //    std::cout << "Inside registerWrite()" << std::endl;
+      std::cout << "Inside registerWrite()" << std::endl;
       //turn off the output so the pins don't light up while the bits are being shifted
       digitalWrite(latchPin, LOW);
   //    std::cout << "Past the latchPin toggle! op " << this->latchPin << std::endl;
@@ -58,7 +58,7 @@ public:
       //delay(50);
       //turn on the output again
       digitalWrite(latchPin, HIGH);
-  //    std::cout << "Past the second latchPin toggle! motorPin: " << this->motorPin << std::endl;
+      std::cout << "Past the second latchPin toggle! motorPin: " << this->motorPin << std::endl;
     }
 
     //turns a motor

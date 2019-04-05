@@ -22,7 +22,7 @@ class BeltButton
     int inputPin; //set this equal to the correct pin
     const int MAX_DELAY = 750;
     long currentMillis = 0;
-    long oldMilis = 0;
+    long oldMillis = 0;
     std::function<void(void)> errorFunc;
 
 public:

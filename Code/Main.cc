@@ -12,8 +12,10 @@
 #include <mutex>
 #include <cstring>
 #include "SequenceInterpreter.hh"
+#include "BeltButton.hh"
 #include "MosquitoHandler.hh"
 #include "LDRSensor.hh"
+#include "PusherButton.hh"
 #include "SensorHelper.hh"
 #include "QueueElement.hh"
 
@@ -43,6 +45,8 @@ int FIBONACCI_B0_COUNT = 0;
 int FIBONACCI_B1_COUNT = 0;
 bool FIBONACCI_FILLING_B0 = true;
 
+bool MQTT_INIT = false;
+
 // Define the shift register pins globally, these will be used for the motors.
 const int dataPin = 12, latchPin = 13, clockPin = 14;
 
@@ -53,7 +57,7 @@ const double MOTOR_BETWEEN_DELAY = 500;
 const double SENSOR_TO_MOTOR1 = 900;
 const double SENSOR_TO_MOTOR2 = 2250;
 const double SENSOR_TO_MOTOR3 = 3200; // all in ms
-const double SENSOR_TO_MOTOR4 = 4800;
+const double SENSOR_TO_MOTOR4 = 4700;
 
 // The protocol details of the MQTT host
 char* MQTT_HOST = "tcp://192.168.0.2";
@@ -86,6 +90,9 @@ auto activateMotor3LambdaUp = [] () {
 		GLOBAL_SYSTEM->pusherSystem.p3.port.in.up();
 };
 
+
+BeltButton* BELT_SENSE_BUTTON;
+
 // A mutex used for locking the enqueueBox1...enqueueBox4 function lambdas.
 std::mutex enqueu1Locker;
 
@@ -115,6 +122,11 @@ int main(int argc, char **argv){
 	  mqtt_init();
 
 	  std::cout << "MQTT Initialized..." << std::endl;
+
+	//  BELT_SENSE_BUTTON = new BeltButton([] () {
+		//  yeet << "De belt runt niet meer " << YEET;
+	  //});
+	  // BELT_SENSE_BUTTON->start();
 
 	  TimerHelper mqtt_Threader([](){
 		  std::cout << "In the lambda, before connecting to MQTT..." << " met host: " << MQTT_HOST << std::endl;
@@ -147,6 +159,7 @@ int main(int argc, char **argv){
 	      }
 	  }if(argc > 2){
 		  MQTT_HOST = argv[2];
+		  MQTT_INIT = true;
 	  }
 
 	//  delay(100000);
@@ -166,6 +179,10 @@ int main(int argc, char **argv){
 	  auto callbackError = [] () {
 		  std::cout << "Measures error\n";
 		  GLOBAL_SYSTEM->app.sensor.out.measuresError();
+	//	  exit(EXIT_FAILURE);
+		  if(MQTT_INIT){
+			  mqtt_sendEmergency();
+		  }
 	  };
 
 	  auto callbackWhite = [] () {
@@ -205,6 +222,7 @@ int main(int argc, char **argv){
     s.app.box2Time = SENSOR_TO_MOTOR2;
     s.app.box3Time = SENSOR_TO_MOTOR3;
     s.app.box4Time = SENSOR_TO_MOTOR4;
+    s.app.rebootTime = SENSOR_TO_MOTOR4;
 
     s.port.in.startSequence = [] () {
     	INTERPRETER->start();
@@ -344,12 +362,14 @@ int main(int argc, char **argv){
 
 	  s.sequence.port.in.appendBlack = [] () {
 		  bool done = INTERPRETER->append(false);
+		  yeet << "Yeeting a black chip" << YEET;
 		  if (done) {
 			  GLOBAL_SYSTEM->sequence.port.out.readSequence();
 		  }
 	  };
 
 	  s.sequence.port.in.appendWhite = [] () {
+		  yeet << "Yeeting a white chip" << YEET;
 		  bool done = INTERPRETER->append(true);
 		  if (done) {
 			  GLOBAL_SYSTEM->sequence.port.out.readSequence();
@@ -493,12 +513,13 @@ int main(int argc, char **argv){
 	  	  };
 
 	 s.app.sensor.in.turnOn();
-	 s.pusherSystem.m1.port_turnCounterClockwise();
-	 s.pusherSystem.m2.port_turnCounterClockwise();
-	 s.pusherSystem.m3.port_turnCounterClockwise();
+	 s.pusherSystem.m1.port_turnClockwise();
+	 s.pusherSystem.m2.port_turnClockwise();
+	 s.pusherSystem.m3.port_turnClockwise();
 
 	 delay(500);
 
+	 mqtt_available();
   	 std::cout << "Before belt en ik leef";
      s.belt.port.in.setCounterClockwise();
   	 // Turn on the conveyer belt, this should always be running
@@ -527,8 +548,12 @@ int main(int argc, char **argv){
 		  if(!boxQueue.empty()){
 			  std::cout << "De queue is niet empty, dequeue de top..." << std::endl;
 			  QueueElement curQueue = boxQueue.top();
+
 			  curQueue.th->setDelay(curQueue.timeStamp - millis());
 			  std::cout << "De delay is: " << curQueue.th->getDelay().count() << std::endl;
+			  if((curQueue.timeStamp - millis()) <= 0){
+				  curQueue.th->setDelay(1);
+			  }
 			  curQueue.th->start();
 			  boxQueue.pop();
 		  }
