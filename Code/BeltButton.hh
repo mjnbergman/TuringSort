@@ -26,11 +26,12 @@ class BeltButton
     std::function<void(void)> errorFunc;
 
 public:
-    BeltButton(int inputPin, std::function<void(void)> errorFunction) : inputPin(inputPin), errorFunc(errorFunction){};
+    BeltButton(int inputPin, std::function<void(void)> errorFunction) : inputPin(inputPin), errorFunc(errorFunction) {
+        pinMode(inputPin, INPUT);
+    };
     void start()
     {
         running = true;
-        pinMode(inputPin, INPUT);
 
         th = thread([=]()
         {
@@ -64,4 +65,4 @@ public:
 
 
 
-#endif /* TURINGSORT_CODE_TIMERHELPER_HH_ */
+#endif /* TURINGSORT_BELTBUTTON_HH_ */
