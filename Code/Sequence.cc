@@ -32,7 +32,7 @@ int SortSequence::getBW() const {
 RequestSequence::RequestSequence(int c, bool i, int a)
 : _container(c), _isWhite(i), _amount(a)
 {
-	this->_mode = ::SortingApplication::OperationMode::Request;
+	this->_mode = ::SortingApplication::OperationMode::type::Request;
 }
 
 int RequestSequence::getContainer() const {
@@ -47,11 +47,24 @@ int RequestSequence::getAmount() const {
     return _amount;
 }
 
-/*FibonacciSequence::FibonacciSequence(int n)
-: Sequence(::SortingApplication::OperationMode::Fibonacci), _n(n)
+FibonacciSequence::FibonacciSequence(int n)
+: _n(n)
 {
+	this->_mode = ::SortingApplication::OperationMode::Fibonacci;
 }
 
 int FibonacciSequence::getN() const {
     return _n;
-}*/
+}
+
+/* Returns for 0 <= n < 8 a Fibonacci integer */
+int FibonacciSequence::getFibonacci(int n) {
+	if (n >= 8 || n < 0) {
+		std::cerr << "Fibonacci requested for wrong index." << std::endl
+				<< "Expected 0 <= n < 8, got n = " + std::to_string(n) << std::endl;
+		return -1;
+	} else if (n <= 1) {
+		return 1;
+	}
+	return FibonacciSequence::getFibonacci(n-1) + FibonacciSequence::getFibonacci(n-2);
+}

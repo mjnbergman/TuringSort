@@ -22,11 +22,10 @@ public:
 	}
     void port_createTimer (double time){
       t = new TimerHelper(this->port.out.timeout);
-	 // int ms = time;
-	 // std::chrono::duration<int, std::milli>;
 	  int test = time;
 	  std::chrono::milliseconds ms(test);
-	  t->start(ms);
+	  t->setDelay(test);
+	  t->start();
     };
     void port_cancelTimer (){
     	t->stop();

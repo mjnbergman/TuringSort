@@ -1,0 +1,10 @@
+[Unit]
+After=network.target
+
+[Service]
+ExecStart=/home/pi/dznpi
+WorkingDirectory=/home/pi
+Restart=always
+
+[Install]
+WantedBy=network.target

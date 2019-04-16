@@ -9,7 +9,10 @@ protected:
 
 public:
     Sequence();
+    virtual ~Sequence() = default;
     SortingApplication::OperationMode::type getMode() const;
+
+
 };
 
 class SortSequence: public Sequence {
@@ -40,6 +43,7 @@ private:
 public:
     FibonacciSequence(int n);
     int getN() const;
+    static int getFibonacci(int n);
 };
 
 #endif /* CODE_SEQUENCE_HH_ */
